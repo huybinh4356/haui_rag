@@ -29,7 +29,6 @@ HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/"
 # Cấu hình trang Streamlit
 st.set_page_config(
     page_title="HaUI Regulation Assistant - haui_rag",
-    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -151,18 +150,18 @@ with st.sidebar:
     is_online, health_data = check_backend_health()
     if is_online:
         st.markdown(
-            '<span class="badge-status badge-online">● Backend: Online (Port 8000)</span>',
+            '<span class="badge-status badge-online">Backend: Online (Port 8000)</span>',
             unsafe_allow_html=True,
         )
         st.caption(f"DB: {health_data.get('total_documents', '1714+')} chunks")
     else:
         st.markdown(
-            '<span class="badge-status badge-offline">○ Backend: Offline (Dùng Direct Mode)</span>',
+            '<span class="badge-status badge-offline">Backend: Offline (Che do Direct Mode)</span>',
             unsafe_allow_html=True,
         )
 
     st.markdown("---")
-    st.subheader("⚙️ Cấu hình truy vấn")
+    st.subheader("Cấu hình truy vấn")
     top_k_val = st.slider(
         "Số lượng văn bản tham chiếu (Top K):",
         min_value=1,
@@ -173,7 +172,7 @@ with st.sidebar:
 
 
     st.markdown("---")
-    st.subheader("💡 Câu hỏi gợi ý")
+    st.subheader("Câu hỏi gợi ý")
     sample_questions = [
         "Điều kiện tốt nghiệp thạc sĩ là gì?",
         "Thời gian đào tạo trình độ thạc sĩ là bao lâu?",
@@ -183,11 +182,11 @@ with st.sidebar:
     ]
 
     for sq in sample_questions:
-        if st.button(f"📌 {sq}", key=f"sq_{sq}", use_container_width=True):
+        if st.button(sq, key=f"sq_{sq}", use_container_width=True):
             st.session_state.pending_question = sq
 
     st.markdown("---")
-    if st.button("🗑️ Xóa lịch sử trò chuyện", use_container_width=True, type="secondary"):
+    if st.button("Xóa lịch sử trò chuyện", use_container_width=True, type="secondary"):
         st.session_state.messages = [
             {
                 "role": "assistant",
@@ -199,7 +198,7 @@ with st.sidebar:
         st.rerun()
 
 # Khu vực hội thoại chính
-st.markdown('<div class="main-title">🎓 Trợ lý AI Tra Cứu Quy Chế HaUI</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Trợ lý AI Tra Cứu Quy Chế HaUI</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="sub-title">Hệ thống hỏi đáp chính xác dựa trên cơ sở dữ liệu các Quyết định và Quy chế chính thức của Trường Đại học Công nghiệp Hà Nội.</div>',
     unsafe_allow_html=True,
@@ -212,7 +211,7 @@ for idx, msg in enumerate(st.session_state.messages):
 
         # Nếu có sources và là tin nhắn của assistant
         if msg.get("sources"):
-            with st.expander(f"📚 Xem {len(msg['sources'])} nguồn văn bản trích dẫn", expanded=False):
+            with st.expander(f"Xem {len(msg['sources'])} nguồn văn bản trích dẫn", expanded=False):
                 for s_idx, src in enumerate(msg["sources"], start=1):
                     citation = src.get("citation", "Quy chế HaUI")
                     distance = src.get("distance", 0.0)
@@ -233,7 +232,7 @@ for idx, msg in enumerate(st.session_state.messages):
                     st.divider()
 
         if msg.get("response_time_ms"):
-            st.caption(f"⏱️ Phản hồi trong {msg['response_time_ms']} ms")
+            st.caption(f"Thời gian phản hồi: {msg['response_time_ms']} ms")
 
 # Xử lý input từ chat box hoặc nút câu hỏi gợi ý
 user_input = st.chat_input("Nhập câu hỏi của bạn về quy chế, quy định HaUI...")
@@ -259,12 +258,12 @@ if user_input:
         q_type = response_data.get("query_type")
 
         if fallback_used:
-            st.info("🌐 Đã kích hoạt Search Fallback: Tra cứu bổ sung từ Cổng thông tin haui.edu.vn")
+            st.info("Đã kích hoạt Search Fallback: Tra cứu bổ sung từ Cổng thông tin haui.edu.vn")
 
         st.markdown(answer_text)
 
         if sources_list:
-            expander_title = "🌐 Nguồn từ Cổng thông tin HaUI" if fallback_used else f"📚 Xem {len(sources_list)} nguồn văn bản trích dẫn"
+            expander_title = "Nguồn từ Cổng thông tin HaUI" if fallback_used else f"Xem {len(sources_list)} nguồn văn bản trích dẫn"
             with st.expander(expander_title, expanded=False):
                 for s_idx, src in enumerate(sources_list, start=1):
                     citation = src.get("citation", "Quy chế HaUI")
@@ -276,16 +275,16 @@ if user_input:
                     st.divider()
 
         if resp_time:
-            st.caption(f"⏱️ Phản hồi trong {resp_time} ms")
+            st.caption(f"Thời gian phản hồi: {resp_time} ms")
 
         # Nút đánh giá phản hồi
         col_fb1, col_fb2, _ = st.columns([1, 1, 8])
         with col_fb1:
-            if st.button("👍 Hữu ích", key=f"like_{len(st.session_state.messages)}"):
-                st.toast("Cảm ơn bạn đã phản hồi tích cực! 🎉")
+            if st.button("Hữu ích", key=f"like_{len(st.session_state.messages)}"):
+                st.toast("Cảm ơn bạn đã phản hồi tích cực.")
         with col_fb2:
-            if st.button("👎 Chưa đúng", key=f"dislike_{len(st.session_state.messages)}"):
-                st.toast("Cảm ơn bạn. Chúng tôi sẽ cải thiện nguồn trích dẫn! 🙏")
+            if st.button("Chưa đúng", key=f"dislike_{len(st.session_state.messages)}"):
+                st.toast("Cảm ơn bạn. Chúng tôi sẽ cải thiện nguồn trích dẫn.")
 
     # 3. Lưu vào lịch sử
     st.session_state.messages.append(

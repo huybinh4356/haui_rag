@@ -146,3 +146,7 @@ def main(): ...
 if __name__ == "__main__":
     main()
 ```
+
+## Quy định về Icon, Emoji và Note Banner
+- **CẤM** sử dụng icon, emoji dưới mọi hình thức trong toàn bộ mã nguồn (text giao diện, button, tiêu đề, log, comment, exception, string template...) trừ khi được người dùng yêu cầu rõ ràng.
+- **CẤM** dùng chuỗi banner `==============================================================================` để note hoặc phân cách. Sử dụng `#` ngắn gọn để chú thích code.

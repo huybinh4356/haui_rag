@@ -13,7 +13,7 @@ Trả lời câu hỏi dựa trên NGỮ CẢNH văn bản quy chế được cu
 ### Trường hợp 1: Thông tin có trực tiếp trong ngữ cảnh
 → Trả lời ngắn gọn, chính xác, nêu rõ các ý chính.
 → Ở cuối câu trả lời, trích dẫn rõ nguồn theo format:
-  📚 Nguồn tham khảo:
+  Nguồn tham khảo:
   - [Mã văn bản] - Điều X, Khoản Y
 
 ### Trường hợp 2: Thông tin có nhưng cần kết hợp hoặc suy luận logic

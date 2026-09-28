@@ -38,15 +38,13 @@ def run_benchmark(
     """
     input_file = DATA_DIR / "test_data" / "test_questions.json"
     if not input_file.exists():
-        print(f"❌ Không tìm thấy file dữ liệu kiểm thử tại: {input_file}")
+        print(f"[ERROR] Khong tim thay file du lieu kiem thu tai: {input_file}")
         return
 
     with open(input_file, "r", encoding="utf-8") as f:
         questions = json.load(f)[:max_questions]
 
-    print("=" * 70)
-    print(f"🚀 BẮT ĐẦU ĐÁNH GIÁ BENCHMARK TRÊN {len(questions)} CÂU HỎI QUY CHẾ HAUI")
-    print("=" * 70)
+    print(f"[INFO] Bat dau danh gia benchmark tren {len(questions)} cau hoi quy che HaUI")
 
     results = []
     latencies = []
@@ -154,15 +152,12 @@ def run_benchmark(
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
-    print("\n" + "=" * 70)
-    print("📊 BÁO CÁO TỔNG KẾT ĐÁNH GIÁ CHẤT LƯỢNG (KPI REPORT)")
-    print("=" * 70)
-    print(f"• Độ chính xác trích dẫn (Citation Accuracy): {citation_accuracy:.1f}%  (Mục tiêu: >= 95%)")
-    print(f"• Tỷ lệ ảo giác (Hallucination Rate):          {hallucination_rate:.1f}%  (Mục tiêu: < 5%)")
-    print(f"• Thời gian phản hồi trung bình:              {avg_latency:.2f}s")
-    print(f"• Thời gian phản hồi P95:                     {p95_latency:.2f}s  (Mục tiêu: < 5.0s)")
-    print(f"• Chi tiết báo cáo đã được lưu tại:            {output_report_file}")
-    print("=" * 70)
+    print("\n[INFO] BAO CAO TONG KET DANH GIA CHAT LUONG (KPI REPORT)")
+    print(f"- Do chinh xac trich dan (Citation Accuracy): {citation_accuracy:.1f}%  (Muc tieu: >= 95%)")
+    print(f"- Ty le ao giac (Hallucination Rate):          {hallucination_rate:.1f}%  (Muc tieu: < 5%)")
+    print(f"- Thoi gian phan hoi trung binh:              {avg_latency:.2f}s")
+    print(f"- Thoi gian phan hoi P95:                     {p95_latency:.2f}s  (Muc tieu: < 5.0s)")
+    print(f"- Chi tiet bao cao da duoc luu tai:           {output_report_file}")
 
 
 if __name__ == "__main__":
