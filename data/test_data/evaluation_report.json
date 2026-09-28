@@ -1,0 +1,341 @@
+{
+  "kpi_metrics": {
+    "total_questions_evaluated": 30,
+    "citation_accuracy_percent": 100.0,
+    "hallucination_rate_percent": 0.0,
+    "average_latency_seconds": 3.78,
+    "p95_latency_seconds": 25.32
+  },
+  "details": [
+    {
+      "id": 1,
+      "type": "factual",
+      "question": "Điều kiện tốt nghiệp trình độ thạc sĩ tại trường ĐH Công nghiệp Hà Nội là gì?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.83
+    },
+    {
+      "id": 2,
+      "type": "factual",
+      "question": "Thời gian đào tạo trình độ thạc sĩ hình thức chính quy là bao lâu?",
+      "answer": "Thời gian đào tạo trình độ thạc sĩ đối với hình thức đào tạo chính quy là 1,5 năm (18 tháng) tính từ thời điểm công nhận học viên, gồm 03 học kỳ.\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 3, Khoản 3",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.83
+    },
+    {
+      "id": 3,
+      "type": "factual",
+      "question": "Thời gian đào tạo thạc sĩ hình thức vừa làm vừa học là bao nhiêu năm?",
+      "answer": "Thời gian đào tạo trình độ thạc sĩ đối với hình thức đào tạo vừa làm vừa học là 2,0 năm (24 tháng) tính từ thời điểm công nhận học viên, gồm 04 học kỳ.\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 3, Khoản 3 (Điểm d)",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.65
+    },
+    {
+      "id": 4,
+      "type": "factual",
+      "question": "Chuẩn đầu ra ngoại ngữ bậc thạc sĩ yêu cầu tương đương bậc mấy?",
+      "answer": "Hiện tại hệ thống chưa tìm thấy quy định cụ thể về \"chuẩn đầu ra ngoại ngữ bậc thạc sĩ yêu cầu tương đương bậc mấy\". Tuy nhiên, có một số thông tin liên quan sau đây:\n- Quy chế áp dụng bảng tham chiếu quy đổi văn bằng hoặc chứng chỉ ngoại ngữ tương đương **Bậc 3 và Bậc 4** Khung năng lực ngoại ngữ 6 bậc dùng cho Việt Nam áp dụng trong tuyển sinh và đào tạo trình độ thạc sĩ (theo Phụ lục kèm theo Quyết định số 1/QĐ-ĐHCN ngày 06/01/2022).\n- Đối với ứng viên dự tuyển chương trình đào tạo thạc sĩ bằng tiếng Việt là người nước ngoài, phải đạt trình độ tiếng Việt từ **Bậc 4** trở lên (theo Điều 5, Khoản 4).\n- Đối với chương trình đào tạo được giảng dạy bằng nước ngoài, ứng viên cần đáp ứng yêu cầu về ngoại ngữ đạt trình độ tương đương từ **Bậc 4** trở lên theo Khung năng lực ngoại ngữ 6 bậc dùng cho Việt Nam (theo Điều 5, Khoản 5).\n\nĐể có câu trả lời chính xác nhất cho trường hợp này, bạn vui lòng liên hệ trực tiếp Phòng Đào tạo HaUI để được hướng dẫn chi tiết.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.51
+    },
+    {
+      "id": 5,
+      "type": "factual",
+      "question": "Học viên thạc sĩ được phép kéo dài thời gian học tập tối đa là bao lâu?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, thời gian tối đa để học viên hoàn thành khóa học (hoặc thời gian kéo dài thời gian đào tạo) được quy định như sau:\n\n- Theo Quy chế, thời gian tối đa để học viên hoàn thành khóa học không được vượt quá 02 lần thời gian theo kế hoạch học tập chuẩn toàn khóa đối với mỗi hình thức đào tạo. Cụ thể, thời gian theo kế hoạch chuẩn là 1,5 năm (18 tháng) đối với hình thức chính quy và 2,0 năm (24 tháng) đối với hình thức vừa làm vừa học.\n- Theo quy định khác trong văn bản, thời gian đào tạo kéo dài thêm không được quá hai năm (24 tháng).\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 3, Khoản 3\n- [630/QĐ-ĐHCN] - Điều 3, Khoản 3",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.43
+    },
+    {
+      "id": 6,
+      "type": "factual",
+      "question": "Khối lượng học tập toàn khóa đối với chương trình đào tạo thạc sĩ là bao nhiêu tín chỉ?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, khối lượng học tập toàn khóa đối với chương trình đào tạo thạc sĩ định hướng ứng dụng gồm **60 tín chỉ** đối với người có trình độ thuộc ngành phù hợp. Ngoài ra, quy định cũng nêu rõ khối lượng kiến thức tối thiểu đối với chương trình đào tạo hai năm học là 60 tín chỉ.\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 3, Khoản 3 (điểm b)\n- [630/QĐ-ĐHCN] - Điều 24, Khoản 3",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.07
+    },
+    {
+      "id": 7,
+      "type": "factual",
+      "question": "Điều kiện để học viên được giao đề tài luận văn thạc sĩ là gì?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định cụ thể về điều kiện để học viên được giao đề tài luận văn thạc sĩ trong hệ thống văn bản của Nhà trường (ngữ cảnh chỉ đề cập việc đề tài do trưởng đơn vị chuyên môn công bố hoặc do học viên đề xuất có kèm theo đề cương, được hội đồng/tiểu ban chuyên môn đánh giá và thẩm định, sau đó Hiệu trưởng ra quyết định giao).\n\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.04
+    },
+    {
+      "id": 8,
+      "type": "factual",
+      "question": "Người hướng dẫn luận văn thạc sĩ cần có học vị gì?",
+      "answer": "Dựa trên quy định của Nhà trường, người hướng dẫn luận văn thạc sĩ cần có các tiêu chuẩn về học vị và chức danh như sau:\n- Có chức danh giáo sư, phó giáo sư, hoặc có học vị tiến sĩ, tiến sĩ khoa học có chuyên môn phù hợp. \n- Đối với người có học vị tiến sĩ, cần có thâm niên 01 năm (12 tháng) được tham gia giảng dạy và hướng dẫn luận văn.\n- Trường hợp có người hướng dẫn thứ hai (đồng hướng dẫn), người này có thể có học vị thạc sĩ từ 3 năm trở lên cùng ngành đào tạo, có tối thiểu 15 năm kinh nghiệm làm việc thực tế thuộc lĩnh vực của đề tài.\n\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 5, Khoản 2 (Điểm b)\n- [630/QĐ-ĐHCN] - Điều 37, Khoản 1 (Điểm b, c)",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.21
+    },
+    {
+      "id": 9,
+      "type": "factual",
+      "question": "Hội đồng đánh giá luận văn thạc sĩ gồm bao nhiêu thành viên?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường. Ngữ cảnh hiện tại chỉ cung cấp thông tin về các hội đồng dành cho cấp đào tạo Tiến sĩ (như Hội đồng đánh giá cấp đơn vị chuyên môn, Hội đồng đánh giá cấp trường, Hội đồng thẩm định luận án), chứ chưa có thông tin về Hội đồng đánh giá luận văn thạc sĩ.\n\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.86
+    },
+    {
+      "id": 10,
+      "type": "factual",
+      "question": "Học viên bị cảnh báo học tập khi nào?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.78
+    },
+    {
+      "id": 11,
+      "type": "factual",
+      "question": "Thời gian nghỉ học tạm thời (bảo lưu) tối đa được mấy học kỳ?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định cụ thể về số lượng học kỳ tối đa được phép nghỉ học tạm thời trong hệ thống văn bản của Nhà trường dựa trên ngữ cảnh được cung cấp. \n\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.21
+    },
+    {
+      "id": 12,
+      "type": "factual",
+      "question": "Điểm đánh giá học phần đạt yêu cầu là từ điểm mấy trở lên?",
+      "answer": "Dựa trên các quy chế của Nhà trường trong ngữ cảnh, mức điểm đánh giá học phần đạt yêu cầu tùy thuộc vào cấp độ đào tạo:\n\n1. **Trình độ Thạc sĩ:** Các học phần trong chương trình đào tạo chỉ được xếp loại đạt khi có điểm đánh giá từ mức C trở lên (tương ứng từ 5,5 điểm trở lên theo thang điểm 10).\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 7, Khoản 6 và Điều 8, Khoản 6 (điểm a, b).\n\n2. **Các hệ đào tạo khác (theo Quyết định 630/QĐ-ĐHCN):** Học phần đạt yêu cầu (học phần tích lũy) khi có điểm học phần từ **4,0** trở lên.\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 33, Khoản 2",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.22
+    },
+    {
+      "id": 13,
+      "type": "factual",
+      "question": "Học viên có được chuyển ngành đào tạo thạc sĩ không?",
+      "answer": "Có, học viên được phép chuyển ngành/chương trình đào tạo thạc sĩ nếu thỏa mãn các điều kiện sau:\n1. Đã học xong 01 học kỳ đầu tiên của khóa học.\n2. Thỏa mãn điều kiện tuyển sinh của ngành/chương trình có nguyện vọng chuyển đến.\n3. Chỉ được phép chuyển 01 lần trong khóa học.\n4. Ngành/chương trình đào tạo có nguyện vọng chuyển đến còn chỉ tiêu đào tạo (nếu số lượng học viên xin chuyển đến lớn hơn chỉ tiêu còn lại, nhà trường sẽ ưu tiên học viên có điểm trung bình tích lũy cao hơn).\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 14, Khoản 5",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.34
+    },
+    {
+      "id": 14,
+      "type": "factual",
+      "question": "Quy định về việc bảo lưu kết quả tuyển sinh thạc sĩ như thế nào?",
+      "answer": "Hiện tại hệ thống chưa tìm thấy quy định cụ thể về việc bảo lưu kết quả tuyển sinh thạc sĩ trong các văn bản ngữ cảnh được cung cấp. Tuy nhiên, ngữ cảnh có đề cập đến các quy định liên quan đến kết quả học tập và nghiên cứu của nghiên cứu sinh (trình độ tiến sĩ) được bảo lưu và xem xét công nhận trong một số trường hợp như:\n- Nghiên cứu sinh bị thôi học và có nguyện vọng tiếp tục theo học chương trình đào tạo thạc sĩ ngành tương ứng nếu đáp ứng các quy định hiện hành.\n- Nghiên cứu sinh chuyển ngành đào tạo hoặc cơ sở đào tạo.\n- Nghiên cứu sinh đã thôi học, đăng ký dự tuyển lại và được nhận làm nghiên cứu sinh mới của Trường.\n\nĐể có câu trả lời chính xác nhất cho trường hợp bảo lưu kết quả tuyển sinh thạc sĩ, bạn vui lòng liên hệ trực tiếp Phòng Đào tạo HaUI để được hướng dẫn chi tiết.\n\n📚 Nguồn tham khảo:\n- [Quy chế TS, TC &QLĐT trình độ Tiến sĩ (1202) (cũ)] - Điều 10, Khoản 1",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.44
+    },
+    {
+      "id": 15,
+      "type": "factual",
+      "question": "Trường hợp nào học viên thạc sĩ bị buộc thôi học?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, học viên cao học (thạc sĩ) bị buộc thôi học trong các trường hợp sau:\n\n1. **Vi phạm quy định về thi cử:** Vi phạm thi hộ hoặc nhờ người thi hộ ở trường hợp vi phạm lần thứ hai.\n2. **Gian lận và vi phạm học thuật/hồ sơ:**\n   - Có hành vi gian lận trong tuyển sinh, học tập, bảo vệ đề án tốt nghiệp hoặc gian lận trong việc làm hồ sơ để được cấp văn bằng, chứng chỉ.\n   - Sử dụng kết quả của người khác hoặc sao chép, trích dẫn không đúng quy định trong đề án tốt nghiệp và bị hội đồng thẩm định kết luận nếu cắt bỏ những phần sử dụng, sao chép, trích dẫn đó thì đề án tốt nghiệp không đạt yêu cầu.\n   - Nhờ hoặc thuê người khác làm hộ đề án tốt nghiệp.\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 16, Khoản 2 và Khoản 3",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.25
+    },
+    {
+      "id": 16,
+      "type": "procedural",
+      "question": "Quy trình xin nghỉ học tạm thời và bảo lưu kết quả học tập gồm các bước nào?",
+      "answer": "Dựa trên quy định của Nhà trường, thủ tục và các bước để học viên xin nghỉ học tạm thời được thực hiện như sau:\n\n1. **Bước 1:** Học viên hoàn thành các nghĩa vụ đối với Trường.\n2. **Bước 2:** Làm đơn xin nghỉ học tạm thời và kèm theo các hồ sơ minh chứng gửi về Đơn vị quản lý đào tạo sau đại học.\n3. **Bước 3:** Đơn vị quản lý đào tạo sau đại học tiến hành đối chiếu, kiểm tra hồ sơ xin nghỉ học tạm thời của học viên và trình Hiệu trưởng ký duyệt.\n\n📚 Nguồn tham khảo:\n- [1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK] - Điều 13, Khoản 4",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.95
+    },
+    {
+      "id": 17,
+      "type": "procedural",
+      "question": "Thủ tục đăng ký và xét duyệt đề tài luận văn thạc sĩ được thực hiện như thế nào?",
+      "answer": "Theo quy định của Nhà trường, thủ tục liên quan đến đề tài luận văn thạc sĩ được thực hiện như sau:\n\n- **Đề xuất đề tài:** Đề tài luận văn do trưởng đơn vị chuyên môn công bố hoặc do học viên đề xuất, có đề cương nghiên cứu kèm theo, được thông qua hội đồng hoặc tiểu ban chuyên môn (do Hiệu trưởng ký Quyết định thành lập) sau khi đã tiến hành đánh giá và thẩm định.\n- **Quyết định giao đề tài:** Hiệu trưởng Nhà trường ra quyết định giao đề tài cho học viên và cử người hướng dẫn trước khi tổ chức bảo vệ luận văn ít nhất 6 tháng, trên cơ sở đề nghị của trưởng khoa chuyên môn, Hội đồng hoặc Tiểu ban chuyên môn và Giám đốc Trung tâm Đào tạo Sau đại học.\n- **Đổi đề tài:** Việc thay đổi đề tài trước khi tổ chức bảo vệ luận văn do Hiệu trưởng Nhà trường ra quyết định dựa trên đơn đề nghị của học viên, ý kiến của người hướng dẫn và trưởng khoa chuyên môn. Việc thay đổi đề tài trong những trường hợp khác sẽ do Hiệu trưởng Nhà trường quy định.\n\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 36, Khoản 1",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.25
+    },
+    {
+      "id": 18,
+      "type": "procedural",
+      "question": "Quy trình tổ chức bảo vệ luận văn thạc sĩ tại trường diễn ra như thế nào?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường. Văn bản hiện có chỉ cung cấp quy định về quy trình bảo vệ luận án tiến sĩ cấp trường, chưa có thông tin về quy trình tổ chức bảo vệ luận văn thạc sĩ.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.92
+    },
+    {
+      "id": 19,
+      "type": "procedural",
+      "question": "Học viên cần chuẩn bị hồ sơ gì để được xét tốt nghiệp thạc sĩ?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 1.71
+    },
+    {
+      "id": 20,
+      "type": "procedural",
+      "question": "Thủ tục xin chuyển cơ sở đào tạo hoặc chuyển trường đối với học viên thạc sĩ?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin cụ thể về thủ tục chi tiết xin chuyển cơ sở đào tạo hoặc chuyển trường đối với học viên thạc sĩ trong hệ thống văn bản của Nhà trường. Tuy nhiên, ngữ cảnh chỉ cung cấp thông tin về các điều kiện để được xét chuyển trường, chuyển nơi học và chuyển chương trình đào tạo tại Điều 14 (như phải đạt điều kiện của chương trình xin đến, có sự đồng ý của Hiệu trưởng, còn đủ thời gian hoàn thành chương trình và không trong thời gian bị kỷ luật từ cảnh cáo trở lên).\n\nĐể có câu trả lời chính xác nhất cho trường hợp này, bạn vui lòng liên hệ trực tiếp Phòng Đào tạo HaUI để được hướng dẫn chi tiết.\n\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.0
+    },
+    {
+      "id": 21,
+      "type": "procedural",
+      "question": "Quy trình chấm phúc khảo bài thi học phần được quy định ra sao?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, quy trình tổ chức chấm phúc khảo bài thi học phần được quy định cụ thể như sau:\n\n1. **Tiếp nhận và chuẩn bị:** Căn cứ đơn phúc khảo của người học/HVINCS, đơn vị có thẩm quyền (Trung tâm Khảo thí hoặc TTĐTSĐH) tiến hành kiểm tra đối chiếu, tạo túi phúc khảo trên hệ thống và rút bài thi để tổ chức chấm lại.\n2. **Xử lý phách và chấm thi:** Bài thi sau khi được rút phúc khảo sẽ được xử lý lại phách. Việc tổ chức chấm phúc khảo được thực hiện như chấm thi lần đầu.\n3. **Xử lý trường hợp điểm chênh lệch:** \n   - Trong trường hợp điểm sau phúc khảo chênh lệch với điểm trước phúc khảo, cán bộ được phân công thống nhất điểm phải xem lại bài thi và thảo luận với cán bộ chấm phúc khảo (nếu cần) để tìm hiểu và thống nhất điểm sau phúc khảo của bài thi.\n   - Đối với những bài thi có điểm thống nhất sau phúc khảo lệch so với điểm trước phúc khảo, cán bộ được phân công thống nhất điểm cần ghi rõ lý do tăng/giảm điểm vào bảng tổng hợp chênh lệch điểm in ra từ hệ thống. Cả hai cán bộ chấm phúc khảo và cán bộ được phân công thống nhất điểm phải ký vào bảng tổng hợp chênh lệch điểm.\n   - Trường hợp phát hiện điểm trên bài thi và phiếu chấm không thống nhất, đơn vị quản lý sẽ lập biên bản ghi nhận hiện tượng và phối hợp với các đơn vị liên quan xác định nguyên nhân chênh lệch điểm, sau đó cập nhật lại điểm trên hệ thống.\n4. **Kết quả:** Điểm phúc khảo là kết quả chính thức và cuối cùng của người học/thí sinh.\n\n📚 Nguồn tham khảo:\n- [quyet-dinh-721-ngay-03-06-2024-ve-viec-ban-hanh-quy-dinh-to-chuc-dgkqht-cua-nguoi-hoc-truong-dhcn-hn (5)] - Điều 29, Khoản 3\n- [SĐH- QĐ154 Quy định tổ chức đánh giá hp] - Điều 29, Khoản 2 và Khoản 3",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 3.2
+    },
+    {
+      "id": 22,
+      "type": "procedural",
+      "question": "Thủ tục xin gia hạn thời gian bảo vệ luận văn thạc sĩ gồm những gì?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường. Các quy định về gia hạn trong ngữ cảnh hiện tại áp dụng cho nghiên cứu sinh (trình độ tiến sĩ), chưa có thông tin cụ thể về thủ tục gia hạn thời gian bảo vệ luận văn thạc sĩ.\n\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.05
+    },
+    {
+      "id": 23,
+      "type": "procedural",
+      "question": "Cách thức đăng ký học lại, thi lại các học phần chưa đạt?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, cách thức đăng ký học lại các học phần chưa đạt được quy định cụ thể như sau:\n\n1. **Trường hợp điểm trung bình chung các học phần chưa đạt từ 5,5 trở lên (học cải thiện điểm):**\n   - Học viên được đăng ký học lại hoặc học đổi sang học phần khác đối với các học phần bị điểm B+, B, C+, C, D+, D để cải thiện điểm trung bình chung tích lũy. Điểm cao nhất trong các lần học sẽ sử dụng để tính điểm trung bình tích lũy vào thời điểm xét tốt nghiệp.\n   - **Cách thức thực hiện:** Học viên đăng ký học lại tại Trung tâm Đào tạo Sau đại học, nộp học phí và thực hiện kế hoạch theo lịch học tập được Trung tâm Đào tạo Sau đại học thông báo.\n\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 35, Khoản 3 và Khoản 4\n\n*(Lưu ý: Đối với việc đăng ký thi lại/kiểm tra bổ sung khi vắng mặt có lý do chính đáng, người học cần làm đơn xin hoãn kiểm tra kèm hồ sơ minh chứng gửi giảng viên và đơn vị đào tạo theo quy định tại [quyet-dinh-721-ngay-03-06-2024], Điều 3, Khoản 4).*",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 2.31
+    },
+    {
+      "id": 24,
+      "type": "procedural",
+      "question": "Quy trình khen thưởng đối với học viên có thành tích xuất sắc?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 51.29
+    },
+    {
+      "id": 25,
+      "type": "procedural",
+      "question": "Trình tự xử lý kỷ luật đối với học viên vi phạm quy chế thi cử?",
+      "answer": "Dựa trên ngữ cảnh được cung cấp, khi học viên vi phạm quy chế thi cử (thi, kiểm tra, đánh giá kết quả học tập), các hình thức xử lý kỷ luật cụ thể tùy theo mức độ vi phạm được quy định như sau:\n\n1. **Hình thức Khiển trách:**\n   - Áp dụng cho học viên phạm lỗi một lần: nhìn bài hoặc trao đổi bài với học viên khác.\n   - Do cán bộ coi thi quyết định tại biên bản được lập.\n   - Hình thức xử lý kèm theo: Trừ 25% tổng số điểm bài thi của môn đó.\n\n2. **Hình thức Cảnh cáo:**\n   - Áp dụng cho các học viên vi phạm một trong các lỗi:\n     + Đã bị khiển trách một lần nhưng trong giờ thi môn đó vẫn tiếp tục vi phạm quy chế thi ở mức khiển trách.\n     + Trao đổi bài làm hoặc giấy nháp với học viên khác.\n     + Chép bài của học viên khác hoặc để học viên khác chép bài của mình.\n   - Do cán bộ coi thi quyết định tại biên bản được lập kèm tang vật (nếu có).\n   - Hình thức xử lý kèm theo: Trừ 50% tổng số điểm bài thi của môn đó.\n\n3. **Hình thức Đình chỉ thi:**\n   - Áp dụng cho các học viên vi phạm một trong các lỗi:\n     + Đã bị cảnh cáo một lần nhưng trong giờ thi môn đó vẫn tiếp tục vi phạm quy chế thi ở mức khiển trách hoặc cảnh cáo.\n     + Mang vật dụng trái phép vào phòng thi.\n     + Đưa đề thi ra ngoài phòng thi hoặc nhận bài giải từ ngoài vào phòng thi.\n     + Viết, vẽ vào tờ giấy làm bài thi của mình những nội dung không liên quan đến bài thi.\n     + Có hành vi gây gổ, đe dọa cán bộ có trách nhiệm trong kỳ thi hoặc đe dọa học viên khác.\n   - Học viên bị đình chỉ thi phải nộp bài thi, đề thi, giấy nháp cho cán bộ coi thi và ra khỏi phòng thi ngay sau khi có quyết định.\n   - Hình thức xử lý kèm theo: Trừ 100% tổng số điểm bài thi của môn đó.\n\n4. **Cho điểm 0 (không):**\n   - Áp dụng đối với các bài thi được xác định có đánh dấu bài, hai bài tự luận giống hệt nhau, bài thi có từ hai màu mực trở lên, hoặc bài thi có chữ viết của từ hai người trở lên.\n\n5. **Hủy bỏ kết quả thi:**\n   - Áp dụng đối với học viên để người khác thi thay hoặc làm bài hộ cho người khác dưới mọi hình thức, sửa chữa hoặc thêm bớt vào bài làm sau khi đã nộp bài, lấy bài của người khác để nộp.\n\n6. **Đình chỉ học tập hoặc buộc thôi học (đối với hành vi thi hộ):**\n   - Học viên đi thi hộ hoặc nhờ người khác thi hộ đều bị kỷ luật ở mức **đình chỉ học tập 01 năm** đối với trường hợp vi phạm lần thứ nhất và **buộc thôi học** đối với trường hợp vi phạm lần thứ hai.\n\n📚 Nguồn tham khảo:\n- [SĐH- QĐ154 Quy định tổ chức đánh giá hp] - Điều 34, Khoản 1\n- [630/QĐ-ĐHCN] - Điều 46, Khoản 10",
+      "sources_count": 5,
+      "has_valid_citation": true,
+      "is_safe_rejection": false,
+      "fallback_used": false,
+      "elapsed_seconds": 4.07
+    },
+    {
+      "id": 26,
+      "type": "out_of_scope",
+      "question": "Giá vé máy bay từ Hà Nội đi Đà Nẵng hôm nay là bao nhiêu?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": false,
+      "is_safe_rejection": true,
+      "fallback_used": false,
+      "elapsed_seconds": 1.54
+    },
+    {
+      "id": 27,
+      "type": "out_of_scope",
+      "question": "Thủ tục xin visa du học Mỹ cần những giấy tờ gì?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": false,
+      "is_safe_rejection": true,
+      "fallback_used": false,
+      "elapsed_seconds": 1.71
+    },
+    {
+      "id": 28,
+      "type": "out_of_scope",
+      "question": "Ai là người phát minh ra ngôn ngữ lập trình Python?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": false,
+      "is_safe_rejection": true,
+      "fallback_used": false,
+      "elapsed_seconds": 1.52
+    },
+    {
+      "id": 29,
+      "type": "out_of_scope",
+      "question": "Món ăn nào nổi tiếng nhất ở Hà Nội?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": false,
+      "is_safe_rejection": true,
+      "fallback_used": false,
+      "elapsed_seconds": 1.53
+    },
+    {
+      "id": 30,
+      "type": "out_of_scope",
+      "question": "Quy định về cấp giấy phép lái xe ô tô hạng B2 gồm những gì?",
+      "answer": "Xin lỗi, tôi không tìm thấy quy định hoặc thông tin này trong hệ thống văn bản của Nhà trường.\nBạn có thể tham khảo thêm tại:\n1. Cổng thông tin đào tạo HaUI: https://www.haui.edu.vn\n2. Liên hệ Phòng Đào tạo (P.110 - Nhà A1) hoặc Cố vấn học tập của khoa để được giải đáp.",
+      "sources_count": 5,
+      "has_valid_citation": false,
+      "is_safe_rejection": true,
+      "fallback_used": false,
+      "elapsed_seconds": 1.62
+    }
+  ]
+}

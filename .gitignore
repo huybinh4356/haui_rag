@@ -1,0 +1,24 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data
+*.pdf
+data/ocr_cache/
+data/logs/
+data/output_json/
+
+# IDE
+.vscode/
+.idea/
+
+# Legacy
+_legacy/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/

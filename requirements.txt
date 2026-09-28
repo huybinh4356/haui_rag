@@ -1,0 +1,12 @@
+google-genai
+psycopg2-binary
+pgvector
+python-dotenv
+fastapi
+uvicorn[standard]
+pydantic
+streamlit
+requests
+pytest
+numpy==1.26.4
+

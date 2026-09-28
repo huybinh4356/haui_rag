@@ -1,0 +1,212 @@
+[
+  {
+    "id": 1,
+    "type": "factual",
+    "question": "Điều kiện tốt nghiệp trình độ thạc sĩ tại trường ĐH Công nghiệp Hà Nội là gì?",
+    "expected_sources": ["630/QĐ-ĐHCN", "41/QĐ-ĐHCN"],
+    "expected_keywords": ["hoàn thành chương trình", "đề án tốt nghiệp", "ngoại ngữ"]
+  },
+  {
+    "id": 2,
+    "type": "factual",
+    "question": "Thời gian đào tạo trình độ thạc sĩ hình thức chính quy là bao lâu?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["1,5 năm", "18 tháng", "3 học kỳ"]
+  },
+  {
+    "id": 3,
+    "type": "factual",
+    "question": "Thời gian đào tạo thạc sĩ hình thức vừa làm vừa học là bao nhiêu năm?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["2,0 năm", "24 tháng", "4 học kỳ"]
+  },
+  {
+    "id": 4,
+    "type": "factual",
+    "question": "Chuẩn đầu ra ngoại ngữ bậc thạc sĩ yêu cầu tương đương bậc mấy?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["Bậc 4", "khung năng lực 6 bậc"]
+  },
+  {
+    "id": 5,
+    "type": "factual",
+    "question": "Học viên thạc sĩ được phép kéo dài thời gian học tập tối đa là bao lâu?",
+    "expected_sources": ["630/QĐ-ĐHCN", "41/QĐ-ĐHCN"],
+    "expected_keywords": ["không quá 2 năm", "kéo dài"]
+  },
+  {
+    "id": 6,
+    "type": "factual",
+    "question": "Khối lượng học tập toàn khóa đối với chương trình đào tạo thạc sĩ là bao nhiêu tín chỉ?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["tín chỉ", "chương trình đào tạo"]
+  },
+  {
+    "id": 7,
+    "type": "factual",
+    "question": "Điều kiện để học viên được giao đề tài luận văn thạc sĩ là gì?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["đề tài", "học phần", "điểm trung bình"]
+  },
+  {
+    "id": 8,
+    "type": "factual",
+    "question": "Người hướng dẫn luận văn thạc sĩ cần có học vị gì?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["tiến sĩ", "học vị"]
+  },
+  {
+    "id": 9,
+    "type": "factual",
+    "question": "Hội đồng đánh giá luận văn thạc sĩ gồm bao nhiêu thành viên?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["thành viên", "hội đồng"]
+  },
+  {
+    "id": 10,
+    "type": "factual",
+    "question": "Học viên bị cảnh báo học tập khi nào?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["cảnh báo", "điểm", "học tập"]
+  },
+  {
+    "id": 11,
+    "type": "factual",
+    "question": "Thời gian nghỉ học tạm thời (bảo lưu) tối đa được mấy học kỳ?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["nghỉ học tạm thời", "học kỳ", "bảo lưu"]
+  },
+  {
+    "id": 12,
+    "type": "factual",
+    "question": "Điểm đánh giá học phần đạt yêu cầu là từ điểm mấy trở lên?",
+    "expected_sources": ["154", "721", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["điểm", "đạt"]
+  },
+  {
+    "id": 13,
+    "type": "factual",
+    "question": "Học viên có được chuyển ngành đào tạo thạc sĩ không?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["chuyển ngành", "điều kiện"]
+  },
+  {
+    "id": 14,
+    "type": "factual",
+    "question": "Quy định về việc bảo lưu kết quả tuyển sinh thạc sĩ như thế nào?",
+    "expected_sources": ["41/QĐ-ĐHCN"],
+    "expected_keywords": ["bảo lưu", "kết quả trúng tuyển", "tuyển sinh"]
+  },
+  {
+    "id": 15,
+    "type": "factual",
+    "question": "Trường hợp nào học viên thạc sĩ bị buộc thôi học?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["buộc thôi học", "kỷ luật", "hết thời gian"]
+  },
+  {
+    "id": 16,
+    "type": "procedural",
+    "question": "Quy trình xin nghỉ học tạm thời và bảo lưu kết quả học tập gồm các bước nào?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["đơn xin", "phòng đào tạo", "xem xét"]
+  },
+  {
+    "id": 17,
+    "type": "procedural",
+    "question": "Thủ tục đăng ký và xét duyệt đề tài luận văn thạc sĩ được thực hiện như thế nào?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["đăng ký đề tài", "khoa", "phê duyệt"]
+  },
+  {
+    "id": 18,
+    "type": "procedural",
+    "question": "Quy trình tổ chức bảo vệ luận văn thạc sĩ tại trường diễn ra như thế nào?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["bảo vệ", "hội đồng", "kết quả"]
+  },
+  {
+    "id": 19,
+    "type": "procedural",
+    "question": "Học viên cần chuẩn bị hồ sơ gì để được xét tốt nghiệp thạc sĩ?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["hồ sơ", "chứng chỉ", "xét tốt nghiệp"]
+  },
+  {
+    "id": 20,
+    "type": "procedural",
+    "question": "Thủ tục xin chuyển cơ sở đào tạo hoặc chuyển trường đối với học viên thạc sĩ?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["chuyển trường", "đồng ý", "hiệu trưởng"]
+  },
+  {
+    "id": 21,
+    "type": "procedural",
+    "question": "Quy trình chấm phúc khảo bài thi học phần được quy định ra sao?",
+    "expected_sources": ["154", "721"],
+    "expected_keywords": ["phúc khảo", "đơn", "thời hạn"]
+  },
+  {
+    "id": 22,
+    "type": "procedural",
+    "question": "Thủ tục xin gia hạn thời gian bảo vệ luận văn thạc sĩ gồm những gì?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["gia hạn", "đơn", "lý do"]
+  },
+  {
+    "id": 23,
+    "type": "procedural",
+    "question": "Cách thức đăng ký học lại, thi lại các học phần chưa đạt?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN", "721"],
+    "expected_keywords": ["học lại", "thi lại", "đăng ký"]
+  },
+  {
+    "id": 24,
+    "type": "procedural",
+    "question": "Quy trình khen thưởng đối với học viên có thành tích xuất sắc?",
+    "expected_sources": ["41/QĐ-ĐHCN", "630/QĐ-ĐHCN"],
+    "expected_keywords": ["khen thưởng", "thành tích"]
+  },
+  {
+    "id": 25,
+    "type": "procedural",
+    "question": "Trình tự xử lý kỷ luật đối với học viên vi phạm quy chế thi cử?",
+    "expected_sources": ["721", "154", "41/QĐ-ĐHCN"],
+    "expected_keywords": ["kỷ luật", "vi phạm", "hội đồng"]
+  },
+  {
+    "id": 26,
+    "type": "out_of_scope",
+    "question": "Giá vé máy bay từ Hà Nội đi Đà Nẵng hôm nay là bao nhiêu?",
+    "expected_sources": [],
+    "expected_keywords": ["không tìm thấy", "không có thông tin"]
+  },
+  {
+    "id": 27,
+    "type": "out_of_scope",
+    "question": "Thủ tục xin visa du học Mỹ cần những giấy tờ gì?",
+    "expected_sources": [],
+    "expected_keywords": ["không tìm thấy", "không có thông tin"]
+  },
+  {
+    "id": 28,
+    "type": "out_of_scope",
+    "question": "Ai là người phát minh ra ngôn ngữ lập trình Python?",
+    "expected_sources": [],
+    "expected_keywords": ["không tìm thấy", "không có thông tin"]
+  },
+  {
+    "id": 29,
+    "type": "out_of_scope",
+    "question": "Món ăn nào nổi tiếng nhất ở Hà Nội?",
+    "expected_sources": [],
+    "expected_keywords": ["không tìm thấy", "không có thông tin"]
+  },
+  {
+    "id": 30,
+    "type": "out_of_scope",
+    "question": "Quy định về cấp giấy phép lái xe ô tô hạng B2 gồm những gì?",
+    "expected_sources": [],
+    "expected_keywords": ["không tìm thấy", "không có thông tin"]
+  }
+]

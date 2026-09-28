@@ -1,0 +1,72 @@
+"""Router xử lý API chat tra cứu quy chế HaUI."""
+
+import logging
+from fastapi import APIRouter, HTTPException, status
+
+from backend.models.schemas import ChatRequest, ChatResponse, Source
+from haui_rag.core.rag_pipeline import rag_query
+
+logger = logging.getLogger("haui_rag")
+router = APIRouter(prefix="/api", tags=["Chat"])
+
+
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Tra cứu quy chế và sinh câu trả lời",
+    description="Nhận câu hỏi, tìm kiếm chunks tương đồng trong PostgreSQL và sinh câu trả lời qua Gemini.",
+)
+async def chat_endpoint(request: ChatRequest) -> ChatResponse:
+    """
+    Xử lý truy vấn câu hỏi người dùng qua RAG pipeline.
+
+    Args:
+        request: Dữ liệu câu hỏi và top_k cần lấy.
+
+    Returns:
+        ChatResponse: Câu trả lời kèm trích dẫn nguồn văn bản.
+
+    Raises:
+        HTTPException: Nếu có lỗi không mong muốn trong quá trình xử lý.
+    """
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Câu hỏi không được để trống.",
+        )
+
+    try:
+        logger.info("Nhận yêu cầu tra cứu từ API: '%s' (top_k=%d)", question, request.top_k)
+        result = rag_query(query=question, top_k=request.top_k)
+
+        # Chuyển đổi danh sách sources thành pydantic Source models
+        sources = [
+            Source(
+                chunk_id=s.get("chunk_id"),
+                citation=s.get("citation", "Quy chế HaUI"),
+                ma_van_ban=s.get("ma_van_ban"),
+                ten_van_ban=s.get("ten_van_ban"),
+                dieu=s.get("dieu"),
+                khoan=s.get("khoan"),
+                distance=s.get("distance", 1.0),
+                content=s.get("content"),
+            )
+            for s in result.get("sources", [])
+        ]
+
+        return ChatResponse(
+            answer=result.get("answer", ""),
+            sources=sources,
+            response_time_ms=result.get("response_time_ms", 0),
+            query_type=result.get("query_type"),
+            fallback_used=result.get("fallback_used", False),
+            error=result.get("error"),
+        )
+    except Exception as e:
+        logger.error("Lỗi khi xử lý endpoint /api/chat: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi máy chủ khi xử lý tra cứu: {str(e)}",
+        ) from e
