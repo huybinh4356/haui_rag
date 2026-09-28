@@ -138,9 +138,7 @@ if "messages" not in st.session_state:
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
 
-# ==============================================================================
-# SIDEBAR
-# ==============================================================================
+# Khu vực Sidebar cấu hình và câu hỏi gợi ý
 with st.sidebar:
     st.image(
         "https://upload.wikimedia.org/wikipedia/vi/2/23/Logo_%C4%90%E1%BA%A1i_h%E1%BB%8Dc_C%C3%B4ng_nghi%E1%BB%87p_H%C3%A0_N%E1%BB%99i.png",
@@ -200,9 +198,7 @@ with st.sidebar:
         ]
         st.rerun()
 
-# ==============================================================================
-# MAIN CHAT AREA
-# ==============================================================================
+# Khu vực hội thoại chính
 st.markdown('<div class="main-title">🎓 Trợ lý AI Tra Cứu Quy Chế HaUI</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="sub-title">Hệ thống hỏi đáp chính xác dựa trên cơ sở dữ liệu các Quyết định và Quy chế chính thức của Trường Đại học Công nghiệp Hà Nội.</div>',
