@@ -165,12 +165,18 @@ def retrieve_relevant_contexts(
     expanded_queries = expand_query(query)
     primary_query = expanded_queries[0]
 
-    # 2. Vector Search
-    query_vector = get_embedding(primary_query, task_type="RETRIEVAL_QUERY")
+    # 2 & 3. Thực thi song song: Gọi Gemini Embedding và tìm kiếm Keyword trong PostgreSQL
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        fut_embed = executor.submit(get_embedding, primary_query, "RETRIEVAL_QUERY")
+        fut_kw = executor.submit(keyword_search, primary_query, top_k * 2)
+
+        query_vector = fut_embed.result()
+        keyword_results = fut_kw.result()
+
     vector_results = search_similar_chunks(query_vector, top_k=top_k * 2)
 
-    # 3. Keyword Search cho câu hỏi chính và biến thể
-    keyword_results = keyword_search(primary_query, top_k=top_k * 2)
+    # Nếu câu hỏi mở rộng có biến thể và keyword_results chưa đủ, tìm thêm
     if len(expanded_queries) > 1 and len(keyword_results) < top_k:
         extra_kw = keyword_search(expanded_queries[1], top_k=top_k)
         seen_ids = {c["id"] for c in keyword_results}

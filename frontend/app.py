@@ -80,7 +80,7 @@ st.markdown(
 def check_backend_health() -> tuple[bool, dict[str, Any]]:
     """Kiểm tra tình trạng kết nối tới Backend server."""
     try:
-        res = requests.get(HEALTH_URL, timeout=2)
+        res = requests.get(HEALTH_URL, timeout=5)
         if res.status_code == 200:
             return True, res.json()
         return False, {}

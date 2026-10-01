@@ -1,10 +1,11 @@
 """Module điều phối RAG Pipeline V2: Kết hợp Query Understanding, Hybrid Search, Reranking, Adaptive Prompting và Search Fallback."""
 
+from collections import OrderedDict
 import logging
 import time
 from typing import Any
 
-from haui_rag.config import DEFAULT_TOP_K
+from haui_rag.config import DEFAULT_TOP_K, ENABLE_QUERY_CACHE, QUERY_CACHE_SIZE
 from haui_rag.core.fallback import generate_from_fallback, search_fallback
 from haui_rag.core.generation import build_prompt, generate_answer
 from haui_rag.core.query_processor import classify_query
@@ -13,6 +14,9 @@ from haui_rag.utils.helpers import is_safe_query
 
 logger = logging.getLogger("haui_rag")
 
+# In-memory LRU Cache cho truy vấn câu hỏi
+_query_cache: OrderedDict[tuple[str, int], dict[str, Any]] = OrderedDict()
+
 
 def rag_query(
     query: str,
@@ -20,13 +24,12 @@ def rag_query(
 ) -> dict[str, Any]:
     """
     Thực thi RAG Pipeline thông minh thế hệ mới (V2):
-    1. Kiểm tra an toàn query (Prompt Injection)
-    2. Phân loại loại câu hỏi (Query Understanding)
-    3. Hybrid Search (Vector + Full-Text Keyword) + RRF Fusion
-    4. Reranking bằng LLM
-    5. Kiểm tra kích hoạt Search Fallback nếu DB không có hoặc khoảng cách quá xa (> 0.45)
-    6. Adaptive Prompting (4 trường hợp linh hoạt)
-    7. Sinh câu trả lời có trích dẫn nguồn chuẩn xác
+    1. Kiểm tra cache câu hỏi để trả lời siêu tốc (< 5ms)
+    2. Kiểm tra an toàn query (Prompt Injection)
+    3. Phân loại loại câu hỏi (Query Understanding)
+    4. Hybrid Search song song (Vector + Keyword) + RRF Fusion
+    5. Adaptive Prompting
+    6. Sinh câu trả lời có trích dẫn nguồn chuẩn xác
 
     Args:
         query: Câu hỏi của người dùng.
@@ -42,6 +45,17 @@ def rag_query(
 
     if len(query) > 1000:
         raise ValueError("Câu hỏi không được vượt quá 1000 ký tự")
+
+    clean_q = query.strip()
+    cache_key = (clean_q.lower(), top_k)
+
+    # Kiểm tra Cache
+    if ENABLE_QUERY_CACHE and cache_key in _query_cache:
+        cached_result = _query_cache[cache_key].copy()
+        _query_cache.move_to_end(cache_key)
+        cached_result["response_time_ms"] = int((time.perf_counter() - start_time) * 1000)
+        logger.info("Tra cứu từ Cache thành công cho: '%s' (%d ms)", clean_q, cached_result["response_time_ms"])
+        return cached_result
 
     # 1. Kiểm tra Prompt Injection
     if not is_safe_query(query):
@@ -99,13 +113,21 @@ def rag_query(
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
         logger.info("Hoàn thành truy vấn RAG trong %d ms", elapsed_ms)
 
-        return {
+        final_response = {
             "answer": answer,
             "sources": formatted_sources,
             "response_time_ms": elapsed_ms,
             "query_type": q_type,
             "fallback_used": fallback_used,
         }
+
+        # Lưu vào cache nếu thành công
+        if ENABLE_QUERY_CACHE:
+            if len(_query_cache) >= QUERY_CACHE_SIZE:
+                _query_cache.popitem(last=False)
+            _query_cache[cache_key] = final_response.copy()
+
+        return final_response
 
     except Exception as e:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)

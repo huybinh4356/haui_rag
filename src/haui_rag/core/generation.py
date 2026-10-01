@@ -6,6 +6,7 @@ from typing import Any
 from google.genai import types
 
 from haui_rag.config import (
+    FALLBACK_LLM_MODEL,
     GENERATION_TEMPERATURE,
     LLM_MODEL,
 )
@@ -44,7 +45,7 @@ def build_prompt(query: str, contexts: list[dict[str, Any]]) -> str:
 def generate_answer(prompt: str) -> str:
     """
     Gọi Gemini LLM để sinh câu trả lời với temperature thấp (0.1).
-    Có retry exponential backoff tự động khi gặp lỗi 503 hoặc 429.
+    Có cơ chế tự động chuyển model dự phòng và retry ngắn khi gặp lỗi 503 hoặc 429.
 
     Args:
         prompt: Prompt hoàn chỉnh chứa câu hỏi và ngữ cảnh.
@@ -56,46 +57,58 @@ def generate_answer(prompt: str) -> str:
         RuntimeError: Khi gọi API Gemini thất bại sau các lần thử lại.
     """
     client = get_genai_client()
-    delay = 2.0
+    candidate_models = [LLM_MODEL]
+    if FALLBACK_LLM_MODEL and FALLBACK_LLM_MODEL != LLM_MODEL:
+        candidate_models.append(FALLBACK_LLM_MODEL)
+
+    delay = 1.0
     max_retries = 3
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            logger.debug("Gọi LLM sinh câu trả lời (lần %d/%d)...", attempt, max_retries)
-            response = client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=GENERATION_TEMPERATURE,
-                ),
-            )
-            if response and response.text:
-                return response.text.strip()
-            raise RuntimeError("API không trả về nội dung text nào")
+    for current_model in candidate_models:
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.debug("Gọi LLM %s (lần %d/%d)...", current_model, attempt, max_retries)
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=GENERATION_TEMPERATURE,
+                    ),
+                )
+                if response and response.text:
+                    return response.text.strip()
+                raise RuntimeError("API không trả về nội dung text nào")
 
-        except Exception as e:
-            err_str = str(e)
-            logger.warning(
-                "Lỗi khi gọi Gemini LLM (%s) lần %d/%d: %s",
-                LLM_MODEL,
-                attempt,
-                max_retries,
-                e,
-            )
-            if attempt == max_retries:
-                logger.error("Hết số lần retry LLM: %s", e, exc_info=True)
-                raise RuntimeError(f"Lỗi khi sinh câu trả lời sau {max_retries} lần: {e}") from e
+            except Exception as e:
+                err_str = str(e)
+                logger.warning(
+                    "Lỗi khi gọi Gemini LLM (%s) lần %d/%d: %s",
+                    current_model,
+                    attempt,
+                    max_retries,
+                    e,
+                )
 
-            # Nếu gặp rate limit 429, trích xuất thời gian chờ từ thông báo lỗi hoặc chờ 25s
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                import re
-                match = re.search(r"retry in ([\d\.]+)s", err_str)
-                sleep_time = float(match.group(1)) + 2.0 if match else 25.0
-                logger.info("Gặp 429 Rate Limit, tạm dừng %.1fs để hồi quota Gemini...", sleep_time)
-            else:
-                sleep_time = delay
-                delay *= 2.0
+                # Nếu là lỗi 503 quá tải và còn model dự phòng, đổi model ngay
+                if ("503" in err_str or "UNAVAILABLE" in err_str) and current_model != candidate_models[-1]:
+                    logger.info("Chuyển ngay sang model dự phòng %s do 503", candidate_models[-1])
+                    break
 
-            time.sleep(sleep_time)
+                if attempt == max_retries:
+                    if current_model == candidate_models[-1]:
+                        logger.error("Hết số lần retry LLM cho tất cả models: %s", e, exc_info=True)
+                        raise RuntimeError(f"Lỗi khi sinh câu trả lời sau {max_retries} lần: {e}") from e
+                    break
+
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    import re
+                    match = re.search(r"retry in ([\d\.]+)s", err_str)
+                    sleep_time = float(match.group(1)) + 1.0 if match else 5.0
+                    logger.info("Gặp 429 Rate Limit, tạm dừng %.1fs để hồi quota Gemini...", sleep_time)
+                else:
+                    sleep_time = delay
+                    delay *= 1.5
+
+                time.sleep(sleep_time)
 
     return "Xin lỗi, tôi không thể xử lý câu trả lời lúc này."

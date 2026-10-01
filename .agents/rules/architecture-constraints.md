@@ -5,7 +5,8 @@ trigger: always_on
 # Ràng buộc kiến trúc
 
 ## Luồng truy vấn BẤT BIẾN
-```
+
+```text
 Câu hỏi người dùng
 ↓ [Gemini Embedding với task_type=RETRIEVAL_QUERY]
 Query vector (3072 chiều)
@@ -62,7 +63,7 @@ Trả về người dùng
 - Cache các câu hỏi phổ biến (giai đoạn sau)
 
 ## KHÔNG được làm (giai đoạn này)
-- ❌ Không xử lý lại PDF, OCR, chunking
-- ❌ Không thêm dữ liệu mới vào DB
-- ❌ Không dùng ChromaDB hoặc vector DB khác
-- ❌ Không dùng google-generativeai (đã deprecated)
+- Không xử lý lại PDF, OCR, chunking
+- Không thêm dữ liệu mới vào DB
+- Không dùng ChromaDB hoặc vector DB khác
+- Không dùng google-generativeai (đã deprecated)

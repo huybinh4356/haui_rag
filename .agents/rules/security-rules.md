@@ -23,8 +23,8 @@ trigger: always_on
 ### Ví dụ ĐÚNG
 
 ```python
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -35,10 +35,10 @@ if not GEMINI_API_KEY:
 
 ## Bảo vệ dữ liệu cá nhân
 
--Số điện thoại, email, CMND/CCCD
--Địa chỉ nhà
--Điểm số, kết quả học tập cá nhân
--Thông tin tài khoản ngân hàng
+- Số điện thoại, email, CMND/CCCD
+- Địa chỉ nhà
+- Điểm số, kết quả học tập cá nhân
+- Thông tin tài khoản ngân hàng
 
 ```python
 import re
@@ -56,7 +56,7 @@ def mask_pii(text: str) -> str:
 
 ## Chống Prompt Injection
 
--**Danh sách pattern nguy hiểm**
+### Danh sách pattern nguy hiểm
 
 ```python
 DANGEROUS_PATTERNS = [
@@ -83,44 +83,44 @@ def is_safe_query(query: str) -> bool:
 ```
 
 ## Database Security
--**Connection**
--Cho phép sử dụng kết nối từ localhost hoặc IP nội bộ 
--Không expose port 5432 ra internet 
--**Queries**
--Luôn dùng parameter queries
 
+### Connection
+- Cho phép sử dụng kết nối từ localhost hoặc IP nội bộ
+- Không expose port 5432 ra internet
 
-```
-python 
+### Queries
+- Luôn dùng parameter queries
+
+```python
 # ĐÚNG
 cur.execute("SELECT * FROM documents WHERE id = %s", (doc_id,))
 
 # SAI (SQL Injection)
 cur.execute(f"SELECT * FROM documents WHERE id = {doc_id}")
-
 ```
 
--**Backup**
--Backup định kỳ bằng pg_dump
--Lưu backup ở nơi khác và không cần mã hóa
+### Backup
+- Backup định kỳ bằng `pg_dump`
+- Lưu backup ở nơi khác và không cần mã hóa
 
+## Phân Quyền
 
-##Phân Quyền##
--**Guest**: Chỉ cho phép xem câu hỏi mẫu 
--**Sinh viên**: Chat, tra cứu văn bản công khai
--**Giảng viên** : Chat, tra cứu vẳn bản, tải biểu mẫu,upload văn bản 
--**Admin** : Tất cả các quyền và cho phép quản lý user và auditlog
+- **Guest:** Chỉ cho phép xem câu hỏi mẫu
+- **Sinh viên:** Chat, tra cứu văn bản công khai
+- **Giảng viên:** Chat, tra cứu văn bản, tải biểu mẫu, upload văn bản
+- **Admin:** Tất cả các quyền và cho phép quản lý user và audit log
 
-##Audit Log
+## Audit Log
 
--**Bắt Buộc* ghi log 
-- Mọi câu hỏi của người dùng
-- Câu trả lời của AI 
-- Thời gian và IP
-- Feedback
--**Format** 
-```
-json 
+- **Bắt buộc** ghi log:
+  - Mọi câu hỏi của người dùng
+  - Câu trả lời của AI
+  - Thời gian và IP
+  - Feedback
+
+- **Format:**
+
+```json
 {
   "timestamp": "2026-09-24T14:30:00Z",
   "user_id": "hashed_user_id",
@@ -131,4 +131,3 @@ json
   "feedback": null
 }
 ```
-

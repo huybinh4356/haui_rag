@@ -1,16 +1,19 @@
 # Tài Liệu API Reference - haui-rag-assistant
 
 ## Base URL
+
 `http://127.0.0.1:8000`
 
 ---
 
 ## 1. Health Check
+
 Kiểm tra trạng thái hoạt động của Backend và cơ sở dữ liệu PostgreSQL.
 
 - **Method:** `GET`
 - **Path:** `/`
 - **Response 200 OK:**
+
 ```json
 {
   "project": "haui_rag",
@@ -25,12 +28,14 @@ Kiểm tra trạng thái hoạt động của Backend và cơ sở dữ liệu P
 ---
 
 ## 2. Chat Tra Cứu Quy Chế
+
 Tra cứu các văn bản quy chế HaUI và sinh câu trả lời có trích dẫn.
 
 - **Method:** `POST`
 - **Path:** `/api/chat`
 - **Headers:** `Content-Type: application/json`
 - **Request Body:**
+
 ```json
 {
   "question": "Điều kiện tốt nghiệp thạc sĩ là gì?",
@@ -39,6 +44,7 @@ Tra cứu các văn bản quy chế HaUI và sinh câu trả lời có trích d�
 ```
 
 - **Response 200 OK:**
+
 ```json
 {
   "answer": "Điều kiện tốt nghiệp trình độ thạc sĩ bao gồm...\n\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 7, Khoản 1",

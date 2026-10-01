@@ -21,10 +21,11 @@ DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
 # Cấu hình Google Gemini AI
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
-LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
-GEMINI_TIMEOUT_SECONDS: int = 300
+LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.5-flash")
+FALLBACK_LLM_MODEL: str = os.getenv("FALLBACK_LLM_MODEL", "gemini-3.8-flash")
+GEMINI_TIMEOUT_SECONDS: int = 60
 MAX_EMBEDDING_RETRIES: int = 3
-INITIAL_RETRY_DELAY: float = 2.0
+INITIAL_RETRY_DELAY: float = 1.0
 
 # Cấu hình RAG Pipeline
 DEFAULT_TOP_K: int = 5
@@ -32,6 +33,8 @@ MAX_TOP_K: int = 10
 GENERATION_TEMPERATURE: float = 0.1
 EMBEDDING_DIMENSION: int = 3072
 USE_LLM_RERANK: bool = os.getenv("USE_LLM_RERANK", "false").lower() == "true"
+ENABLE_QUERY_CACHE: bool = os.getenv("ENABLE_QUERY_CACHE", "true").lower() == "true"
+QUERY_CACHE_SIZE: int = int(os.getenv("QUERY_CACHE_SIZE", "128"))
 
 # Cấu hình Thư mục dữ liệu, Server & Logs (Lưu trong data/logs/)
 DATA_DIR: Path = BASE_DIR / "data"

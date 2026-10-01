@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api", tags=["Chat"])
     summary="Tra cứu quy chế và sinh câu trả lời",
     description="Nhận câu hỏi, tìm kiếm chunks tương đồng trong PostgreSQL và sinh câu trả lời qua Gemini.",
 )
-async def chat_endpoint(request: ChatRequest) -> ChatResponse:
+def chat_endpoint(request: ChatRequest) -> ChatResponse:
     """
     Xử lý truy vấn câu hỏi người dùng qua RAG pipeline.
 

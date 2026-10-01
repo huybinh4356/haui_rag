@@ -26,9 +26,9 @@ def get_embedding(text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list[floa
 
 ## Docstring
 
--**BẮT BUỘC** viết docstring cho mọi hàm puclic
--Dùng chuẩn **Google style**
--Format: Mô tả -> Args -> Returns -> Raises
+- **BẮT BUỘC** viết docstring cho mọi hàm public
+- Dùng chuẩn **Google style**
+- Format: Mô tả -> Args -> Returns -> Raises
 
 ```python
 def search_documents(query: str, top_k: int = 5) -> list[dict]:
@@ -49,17 +49,16 @@ def search_documents(query: str, top_k: int = 5) -> list[dict]:
 
 ## Logging
 
--**KHÔNG** dùng print()
--**BẮT BUỘC** dùng logging
--Mỗi file :
+- **KHÔNG** dùng `print()`
+- **BẮT BUỘC** dùng `logging`
+- Mỗi file:
 
-```
-python 
+```python
 logger = logging.getLogger(__name__)
 ```
 
--Dùng đúng câos độ : debug, info, warning, error, critical
--Khi log lỗi : thêm `exc_info=True`
+- Dùng đúng cấp độ: `debug`, `info`, `warning`, `error`, `critical`
+- Khi log lỗi: thêm `exc_info=True`
 
 ```python
 import logging
@@ -67,17 +66,19 @@ logger = logging.getLogger(__name__)
 
 logger.info(f"Đang xử lý chunk {idx}/{total}")
 logger.warning(f"Rate limit, chờ {wait}s")
-logger.error(f"Lỗi kết nối DB: {e}", exc_info=True)```
+logger.error(f"Lỗi kết nối DB: {e}", exc_info=True)
+```
 
-## Xử lý lỗi 
-##**BẮT BUỘC** dùng `try`...`except` cho mọi thao tác I/O
--Phải raise exception cụ thể (không dùng Exception chung)
--Phải log lỗi trước khi raise
--##**CẤM** dùng `except:pass`(nuốt lỗi)
--Phải đóng resource trong finally 
+## Xử lý lỗi
 
-``` python 
- #  ĐÚNG
+- **BẮT BUỘC** dùng `try`...`except` cho mọi thao tác I/O
+- Phải raise exception cụ thể (không dùng Exception chung)
+- Phải log lỗi trước khi raise
+- **CẤM** dùng `except: pass` (nuốt lỗi)
+- Phải đóng resource trong `finally`
+
+```python
+# ĐÚNG
 try:
     conn = psycopg2.connect(...)
 except psycopg2.OperationalError as e:
@@ -87,7 +88,7 @@ finally:
     if conn:
         conn.close()
 
-#  SAI
+# SAI
 try:
     conn = psycopg2.connect(...)
 except:
@@ -96,18 +97,17 @@ except:
 
 ## Import
 
--Sắp xếp theo thứ tự, mỗi nhóm cách nhau 1 dòng trống:
-1.Stdlib(os,json,time)
-2.Third-party (psycopg2, google.genai)
-3.Local (from utils import ...)
+- Sắp xếp theo thứ tự, mỗi nhóm cách nhau 1 dòng trống:
+  1. Stdlib (`os`, `json`, `time`)
+  2. Third-party (`psycopg2`, `google.genai`)
+  3. Local (`from utils import ...`)
 
 ## Constants
 
--Khai báo ở đầu file, sau imports
--Nhóm theo chủ đề, có comment
+- Khai báo ở đầu file, sau imports
+- Nhóm theo chủ đề, có comment
 
-```
-python 
+```python
 # Cấu hình Database
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
@@ -119,11 +119,11 @@ LLM_MODEL = "gemini-2.0-flash"
 
 ## Comment
 
--Chỉ comment khi cần(logic phức tạp, workaround)
--Không comment những gì code đã rõ
--Dùng  tiếng Việt cho comment nghiệp vụ
+- Chỉ comment khi cần (logic phức tạp, workaround)
+- Không comment những gì code đã rõ
+- Dùng tiếng Việt cho comment nghiệp vụ
 
-``` python
+```python
 """Module docstring - mô tả ngắn gọn module làm gì."""
 
 # 1. Imports (stdlib → third-party → local)
@@ -148,5 +148,6 @@ if __name__ == "__main__":
 ```
 
 ## Quy định về Icon, Emoji và Note Banner
+
 - **CẤM** sử dụng icon, emoji dưới mọi hình thức trong toàn bộ mã nguồn (text giao diện, button, tiêu đề, log, comment, exception, string template...) trừ khi được người dùng yêu cầu rõ ràng.
 - **CẤM** dùng chuỗi banner `==============================================================================` để note hoặc phân cách. Sử dụng `#` ngắn gọn để chú thích code.
