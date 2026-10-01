@@ -49,8 +49,8 @@ def chat_endpoint(request: ChatRequest) -> ChatResponse:
                 ma_van_ban=s.get("ma_van_ban"),
                 ten_van_ban=s.get("ten_van_ban"),
                 dieu=s.get("dieu"),
-                khoan=s.get("khoan"),
-                distance=s.get("distance", 1.0),
+                distance=s.get("distance"),
+                source_type=s.get("source_type", "database"),
                 content=s.get("content"),
             )
             for s in result.get("sources", [])
@@ -62,6 +62,7 @@ def chat_endpoint(request: ChatRequest) -> ChatResponse:
             response_time_ms=result.get("response_time_ms", 0),
             query_type=result.get("query_type"),
             fallback_used=result.get("fallback_used", False),
+            citation_audit=result.get("citation_audit"),
             error=result.get("error"),
         )
     except Exception as e:

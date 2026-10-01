@@ -320,16 +320,37 @@ def chunk_legal_document(text, metadata_base):
             khoan_match = re.match(r"\n?(\d+)\.", khoan_text)
             khoan_number = khoan_match.group(1) if khoan_match else "Mở đầu"
             
-            chunk_content = f"{dieu_title} {khoan_text.strip()}"
-            
-            chunk_metadata = metadata_base.copy()
-            chunk_metadata["dieu"] = dieu_number
-            chunk_metadata["khoan"] = khoan_number
-            
-            chunks.append({
-                "content": chunk_content,
-                "metadata": chunk_metadata
-            })
+            # Nếu một Khoản quá dài (> 1500 ký tự), thực hiện sub-chunking có overlap để tối ưu embedding
+            MAX_CHUNK_CHARS = 1500
+            OVERLAP_CHARS = 150
+
+            if len(chunk_content) <= MAX_CHUNK_CHARS:
+                chunk_metadata = metadata_base.copy()
+                chunk_metadata["dieu"] = dieu_number
+                chunk_metadata["khoan"] = khoan_number
+                chunks.append({
+                    "content": chunk_content,
+                    "metadata": chunk_metadata
+                })
+            else:
+                sub_parts = []
+                start = 0
+                while start < len(chunk_content):
+                    end = start + MAX_CHUNK_CHARS
+                    sub_text = chunk_content[start:end].strip()
+                    if sub_text:
+                        sub_parts.append(sub_text)
+                    start += (MAX_CHUNK_CHARS - OVERLAP_CHARS)
+
+                for sub_idx, sub_c in enumerate(sub_parts, start=1):
+                    chunk_metadata = metadata_base.copy()
+                    chunk_metadata["dieu"] = dieu_number
+                    chunk_metadata["khoan"] = khoan_number
+                    chunk_metadata["sub_index"] = sub_idx
+                    chunks.append({
+                        "content": sub_c,
+                        "metadata": chunk_metadata
+                    })
     
     return chunks
 

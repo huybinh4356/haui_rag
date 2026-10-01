@@ -4,7 +4,7 @@ import html
 import logging
 import re
 from typing import Any
-from urllib.parse import quote_plus, unquote
+from urllib.parse import quote_plus, unquote, urlparse
 import requests
 from google.genai import types
 
@@ -56,9 +56,12 @@ def search_fallback(query: str, top_k: int = 3) -> list[dict[str, Any]]:
                     raw_link = unquote(url_match.group(2))
                 else:
                     link_match = re.search(r'<a class="result__url" href="([^"]*)"', block)
-                    raw_link = link_match.group(1).strip() if link_match else "https://www.haui.edu.vn"
+                # Whitelist domain chặt chẽ: chỉ chấp nhận haui.edu.vn hoặc subdomain của haui.edu.vn
+                parsed_url = urlparse(raw_link)
+                host = (parsed_url.hostname or "").lower()
+                is_haui_domain = host == "haui.edu.vn" or host.endswith(".haui.edu.vn")
 
-                if "haui.edu.vn" in raw_link or snippet_clean:
+                if is_haui_domain and snippet_clean:
                     results.append(
                         {
                             "title": "Cổng thông tin ĐH Công nghiệp Hà Nội (HaUI)",

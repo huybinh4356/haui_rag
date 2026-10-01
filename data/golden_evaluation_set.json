@@ -1,0 +1,177 @@
+[
+  {
+    "id": "Q01",
+    "question": "Điều kiện tốt nghiệp trình độ thạc sĩ là gì?",
+    "category": "factual",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["tốt nghiệp", "thạc sĩ", "hoàn thành"]
+  },
+  {
+    "id": "Q02",
+    "question": "Thời gian đào tạo trình độ thạc sĩ tối đa là bao lâu?",
+    "category": "factual",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["thời gian đào tạo", "thạc sĩ", "năm"]
+  },
+  {
+    "id": "Q03",
+    "question": "Học viên thạc sĩ có được bảo lưu kết quả học tập không?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["bảo lưu", "tạm ngừng", "nghỉ học tạm thời"]
+  },
+  {
+    "id": "Q04",
+    "question": "Quy định về việc bảo vệ luận văn thạc sĩ gồm những điều kiện gì?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["luận văn", "bảo vệ", "hội đồng"]
+  },
+  {
+    "id": "Q05",
+    "question": "Điều kiện để mở ngành hoặc chuyên ngành đào tạo mới tại trường?",
+    "category": "factual",
+    "target_doc": "508/QĐ-ĐHCN",
+    "expected_keywords": ["mở ngành", "chuyên ngành", "đề án"]
+  },
+  {
+    "id": "Q06",
+    "question": "Hồ sơ mở ngành đào tạo mới gồm những văn bản tài liệu nào?",
+    "category": "procedural",
+    "target_doc": "508/QĐ-ĐHCN",
+    "expected_keywords": ["hồ sơ", "mở ngành", "chương trình đào tạo"]
+  },
+  {
+    "id": "Q07",
+    "question": "Đánh giá kết quả học tập của người học được thực hiện theo thang điểm nào?",
+    "category": "factual",
+    "target_doc": "đánh giá kết quả học tập",
+    "expected_keywords": ["thang điểm", "đánh giá", "điểm chữ"]
+  },
+  {
+    "id": "Q08",
+    "question": "Hình thức kỷ luật đối với học viên vi phạm quy chế thi là gì?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["kỷ luật", "khiển trách", "đình chỉ"]
+  },
+  {
+    "id": "Q09",
+    "question": "Quy định về chuẩn đầu ra ngoại ngữ của học viên cao học?",
+    "category": "factual",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["chuẩn đầu ra", "ngoại ngữ", "tiếng Anh"]
+  },
+  {
+    "id": "Q10",
+    "question": "Trách nhiệm của giảng viên hướng dẫn luận văn thạc sĩ là gì?",
+    "category": "factual",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["người hướng dẫn", "giảng viên", "trách nhiệm"]
+  },
+  {
+    "id": "Q11",
+    "question": "So sánh chương trình đào tạo thạc sĩ định hướng ứng dụng và nghiên cứu?",
+    "category": "comparative",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["định hướng ứng dụng", "nghiên cứu", "luận văn"]
+  },
+  {
+    "id": "Q12",
+    "question": "Thủ tục xin chuyển ngành học hoặc cơ sở đào tạo của học viên?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["chuyển ngành", "thủ tục", "đơn"]
+  },
+  {
+    "id": "Q13",
+    "question": "Quy định đánh giá điểm quá trình và điểm thi kết thúc học phần?",
+    "category": "factual",
+    "target_doc": "đánh giá kết quả học tập",
+    "expected_keywords": ["quá trình", "kết thúc học phần", "trọng số"]
+  },
+  {
+    "id": "Q14",
+    "question": "Điều kiện công nhận giảng viên đủ tiêu chuẩn hướng dẫn thạc sĩ?",
+    "category": "factual",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["tiêu chuẩn", "hướng dẫn", "tiến sĩ"]
+  },
+  {
+    "id": "Q15",
+    "question": "Thời hạn hoàn thành học phí và chế tài nếu nộp muộn?",
+    "category": "factual",
+    "target_doc": "học phí",
+    "expected_keywords": ["học phí", "nộp", "thời hạn"]
+  },
+  {
+    "id": "Q16",
+    "question": "Học bổng khuyến khích học tập được xét dựa trên tiêu chí nào?",
+    "category": "factual",
+    "target_doc": "1202/QĐ-ĐHCN",
+    "expected_keywords": ["học bổng", "rèn luyện", "học tập"]
+  },
+  {
+    "id": "Q17",
+    "question": "Quy định về thời gian nghỉ học tạm thời được kéo dài tối đa bao lâu?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["nghỉ học tạm thời", "tối đa", "thời gian"]
+  },
+  {
+    "id": "Q18",
+    "question": "Điều kiện dự thi kết thúc học phần đối với sinh viên và học viên?",
+    "category": "factual",
+    "target_doc": "đánh giá kết quả học tập",
+    "expected_keywords": ["dự thi", "điều kiện", "chuyên cần"]
+  },
+  {
+    "id": "Q19",
+    "question": "Khi nào người học bị buộc thôi học?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["buộc thôi học", "hết thời gian", "bị xử lý"]
+  },
+  {
+    "id": "Q20",
+    "question": "Quy chế tổ chức đánh giá luận văn trực tuyến hoặc kết hợp?",
+    "category": "procedural",
+    "target_doc": "630/QĐ-ĐHCN",
+    "expected_keywords": ["trực tuyến", "đánh giá", "hội đồng"]
+  },
+  {
+    "id": "Q21",
+    "question": "Chính sách trợ cấp tiền mua xe máy điện cho sinh viên năm 2026?",
+    "category": "out_of_scope",
+    "target_doc": null,
+    "expected_keywords": []
+  },
+  {
+    "id": "Q22",
+    "question": "Cách làm hộ chiếu trực tuyến cho người dân tại Hà Nội?",
+    "category": "out_of_scope",
+    "target_doc": null,
+    "expected_keywords": []
+  },
+  {
+    "id": "Q23",
+    "question": "Giá vé xem phim rạp CGV cuối tuần là bao nhiêu?",
+    "category": "out_of_scope",
+    "target_doc": null,
+    "expected_keywords": []
+  },
+  {
+    "id": "Q24",
+    "question": "Thời tiết ngày mai tại Hà Nội có mưa không?",
+    "category": "out_of_scope",
+    "target_doc": null,
+    "expected_keywords": []
+  },
+  {
+    "id": "Q25",
+    "question": "Sinh viên nợ môn tiếng Anh thì điểm GPA có được làm tròn không?",
+    "category": "factual",
+    "target_doc": "đánh giá kết quả học tập",
+    "expected_keywords": ["làm tròn", "điểm", "GPA"]
+  }
+]

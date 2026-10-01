@@ -10,7 +10,7 @@ from haui_rag.core.fallback import generate_from_fallback, search_fallback
 from haui_rag.core.generation import build_prompt, generate_answer
 from haui_rag.core.query_processor import classify_query
 from haui_rag.core.retrieval import retrieve_relevant_contexts
-from haui_rag.utils.helpers import is_safe_query
+from haui_rag.utils.helpers import is_safe_query, verify_citations_against_sources
 
 logger = logging.getLogger("haui_rag")
 
@@ -95,7 +95,8 @@ def rag_query(
                         {
                             "chunk_id": None,
                             "citation": f"[Web HaUI] {item['title']}",
-                            "distance": 0.0,
+                            "distance": None,
+                            "source_type": "web",
                             "content": f"{item['snippet']}\nLink: {item['link']}",
                         }
                         for item in fallback_items
@@ -113,12 +114,21 @@ def rag_query(
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
         logger.info("Hoàn thành truy vấn RAG trong %d ms", elapsed_ms)
 
+        # 7. Thẩm định trích dẫn tự động (Machine-verifiable Citation Check)
+        citation_audit = verify_citations_against_sources(answer, formatted_sources)
+        if not citation_audit.get("is_grounded", True):
+            logger.warning(
+                "Phát hiện trích dẫn chưa được kiểm chứng trong câu trả lời: %s",
+                citation_audit.get("unverified_citations"),
+            )
+
         final_response = {
             "answer": answer,
             "sources": formatted_sources,
             "response_time_ms": elapsed_ms,
             "query_type": q_type,
             "fallback_used": fallback_used,
+            "citation_audit": citation_audit,
         }
 
         # Lưu vào cache nếu thành công

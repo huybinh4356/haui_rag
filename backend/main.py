@@ -1,6 +1,7 @@
 """Entry point của FastAPI Backend Server cho dự án haui_rag."""
 
 import logging
+import os
 import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +26,8 @@ try:
     validate_config()
     logger.info("Cấu hình môi trường hợp lệ.")
 except ValueError as e:
-    logger.error("Lỗi cấu hình khởi động: %s", e)
+    logger.critical("Lỗi cấu hình khởi động: %s. Dừng ứng dụng ngay lập tức.", e)
+    raise SystemExit(f"Lỗi cấu hình môi trường: {e}") from e
 
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(
@@ -36,12 +38,22 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Cấu hình CORS để giao diện Streamlit hoặc Web frontend có thể gọi API
+# Cấu hình CORS chặt chẽ: chỉ cho phép các cổng Frontend được ủy quyền
+cors_env = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [
+    "http://localhost:8501",
+    "http://127.0.0.1:8501",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if cors_env:
+    allowed_origins.extend([orig.strip() for orig in cors_env.split(",") if orig.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

@@ -75,7 +75,7 @@ def keyword_search(
     top_k: int = DEFAULT_TOP_K,
 ) -> list[dict[str, Any]]:
     """
-    Tìm kiếm từ khóa (Keyword/BM25 Search) sử dụng PostgreSQL Full-Text Search.
+    Tìm kiếm từ khóa (PostgreSQL Full-Text Search với ts_rank & plainto_tsquery).
     Tuân thủ tuyệt đối quy tắc READ-ONLY.
 
     Args:

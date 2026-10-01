@@ -211,6 +211,7 @@ def retrieve_relevant_contexts(
                 "dieu": meta.get("dieu", ""),
                 "khoan": meta.get("khoan", ""),
                 "distance": round(c.get("distance", 1.0), 4),
+                "source_type": "database",
                 "rrf_score": c.get("rrf_score", 0.0),
                 "rerank_score": c.get("rerank_score", None),
                 "content": c.get("content", ""),

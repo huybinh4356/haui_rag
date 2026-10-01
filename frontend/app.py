@@ -214,11 +214,15 @@ for idx, msg in enumerate(st.session_state.messages):
             with st.expander(f"Xem {len(msg['sources'])} nguồn văn bản trích dẫn", expanded=False):
                 for s_idx, src in enumerate(msg["sources"], start=1):
                     citation = src.get("citation", "Quy chế HaUI")
-                    distance = src.get("distance", 0.0)
+                    distance = src.get("distance")
+                    source_type = src.get("source_type") or ("web" if distance is None else "database")
                     content = src.get("content", "")
                     ten_vb = src.get("ten_van_ban") or ""
 
-                    st.markdown(f"**{s_idx}. {citation}** *(Khoảng cách vector: `{distance}`)*")
+                    if source_type == "web" or distance is None:
+                        st.markdown(f"**{s_idx}. {citation}** *(Nguồn: Cổng thông tin HaUI)*")
+                    else:
+                        st.markdown(f"**{s_idx}. {citation}** *(Khoảng cách vector: `{distance}`)*")
                     if ten_vb:
                         st.caption(f"Tên văn bản: {ten_vb}")
                     if content:

@@ -30,8 +30,8 @@ class Source(BaseModel):
     ma_van_ban: Optional[str] = Field(None, description="Mã số văn bản quy chế")
     ten_van_ban: Optional[str] = Field(None, description="Tên đầy đủ của văn bản")
     dieu: Optional[str] = Field(None, description="Điều số")
-    khoan: Optional[str] = Field(None, description="Khoản số")
-    distance: float = Field(..., description="Khoảng cách cosine (càng nhỏ càng gần)")
+    distance: Optional[float] = Field(None, description="Khoảng cách cosine (None nếu nguồn từ web fallback)")
+    source_type: Optional[str] = Field("database", description="Loại nguồn trích dẫn: database hoặc web")
     content: Optional[str] = Field(None, description="Nội dung trích đoạn từ văn bản")
 
 
@@ -43,4 +43,5 @@ class ChatResponse(BaseModel):
     response_time_ms: int = Field(..., description="Thời gian xử lý tính bằng mili-giây")
     query_type: Optional[str] = Field(None, description="Phân loại câu hỏi (factual, procedural, comparative, out_of_scope)")
     fallback_used: Optional[bool] = Field(False, description="Đánh dấu câu trả lời có sử dụng Search Fallback haui.edu.vn không")
+    citation_audit: Optional[dict] = Field(None, description="Kết quả thẩm định tính trung thực trích dẫn tự động")
     error: Optional[str] = Field(None, description="Chi tiết lỗi nếu có sự cố xảy ra")
