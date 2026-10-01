@@ -18,11 +18,24 @@ DB_NAME: str = os.getenv("DB_NAME", "rag_haui")
 DB_USER: str = os.getenv("DB_USER", "postgres")
 DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
 
+# Cấu hình LLM Provider: "ollama" (mặc định cục bộ - Qwen 3.5 4B) hoặc "gemini" (cloud)
+LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama").lower()
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+LOCAL_LLM_MODEL: str = os.getenv("LOCAL_LLM_MODEL", "qwen3.5:4b")
+OLLAMA_TIMEOUT_SECONDS: int = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
+
+# Cấu hình tối ưu VRAM cho card RTX 3050 (4GB): Giới hạn mức chạy 3.0 - 3.5 GB VRAM
+# num_ctx=3072 tokens giới hạn KV cache trong khoảng 500-600MB + 2.6GB model weights = ~3.1-3.2GB VRAM
+OLLAMA_NUM_CTX: int = int(os.getenv("OLLAMA_NUM_CTX", "3072"))
+OLLAMA_NUM_PREDICT: int = int(os.getenv("OLLAMA_NUM_PREDICT", "1024"))
+OLLAMA_NUM_GPU: int = int(os.getenv("OLLAMA_NUM_GPU", "999"))
+
 # Cấu hình Google Gemini AI
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
-LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.5-flash")
-FALLBACK_LLM_MODEL: str = os.getenv("FALLBACK_LLM_MODEL", "gemini-3.8-flash")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.6-flash")
+FALLBACK_LLM_MODEL: str = os.getenv("FALLBACK_LLM_MODEL", "gemini-3.1-flash-lite")
+ACTIVE_LLM_MODEL: str = LOCAL_LLM_MODEL if LLM_PROVIDER == "ollama" else LLM_MODEL
 GEMINI_TIMEOUT_SECONDS: int = 60
 MAX_EMBEDDING_RETRIES: int = 3
 INITIAL_RETRY_DELAY: float = 1.0

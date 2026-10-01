@@ -9,11 +9,13 @@ from fastapi.responses import JSONResponse
 
 from backend.api.chat import router as chat_router
 from haui_rag.config import (
+    ACTIVE_LLM_MODEL,
     BACKEND_HOST,
     BACKEND_PORT,
     DB_NAME,
     EMBEDDING_MODEL,
     LLM_MODEL,
+    LLM_PROVIDER,
     validate_config,
 )
 from haui_rag.db.connection import connect_db
@@ -100,7 +102,8 @@ async def health_check() -> JSONResponse:
             "database": db_status,
             "total_documents": doc_count,
             "embedding_model": EMBEDDING_MODEL,
-            "llm_model": LLM_MODEL,
+            "llm_provider": LLM_PROVIDER,
+            "llm_model": ACTIVE_LLM_MODEL,
         }
     )
 

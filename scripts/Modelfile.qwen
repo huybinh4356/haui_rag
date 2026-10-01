@@ -1,0 +1,12 @@
+FROM qwen3.5:4b
+
+# Cấu hình tối ưu 3.0 - 3.5 GB VRAM trên RTX 3050 Laptop (4GB)
+# Tokenizer của Qwen nén tiếng Việt cực tốt, 3072 tokens tương đương gần 3000 từ tiếng Việt
+PARAMETER num_ctx 3072
+PARAMETER num_predict 1024
+PARAMETER temperature 0.1
+PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1.1
+
+SYSTEM """Bạn là Trợ lý AI tra cứu văn bản, quy chế và quy định của Trường Đại học Công nghiệp Hà Nội (HaUI).
+Chỉ sử dụng thông tin trong ngữ cảnh được cung cấp để trả lời. Không bịa đặt thông tin."""

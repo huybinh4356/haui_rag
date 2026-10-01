@@ -16,11 +16,13 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from haui_rag.config import (
+    ACTIVE_LLM_MODEL,
     BACKEND_HOST,
     BACKEND_PORT,
     DEFAULT_TOP_K,
     EMBEDDING_MODEL,
     LLM_MODEL,
+    LLM_PROVIDER,
 )
 
 API_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/api/chat"
@@ -154,11 +156,13 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
         st.caption(f"DB: {health_data.get('total_documents', '1714+')} chunks")
+        st.caption(f"LLM: **{health_data.get('llm_model', 'gemma2:2b')}** ({health_data.get('llm_provider', 'ollama')})")
     else:
         st.markdown(
             '<span class="badge-status badge-offline">Backend: Offline (Che do Direct Mode)</span>',
             unsafe_allow_html=True,
         )
+        st.caption(f"LLM: **{ACTIVE_LLM_MODEL}** ({LLM_PROVIDER})")
 
     st.markdown("---")
     st.subheader("Cấu hình truy vấn")

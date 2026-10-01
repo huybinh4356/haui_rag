@@ -6,10 +6,8 @@ import re
 from typing import Any
 from urllib.parse import quote_plus, unquote, urlparse
 import requests
-from google.genai import types
 
-from haui_rag.config import LLM_MODEL
-from haui_rag.core.embedding import get_genai_client
+from haui_rag.core.generation import generate_answer
 
 logger = logging.getLogger("haui_rag")
 
@@ -87,6 +85,12 @@ def generate_from_fallback(query: str, fallback_results: list[dict[str, Any]]) -
     Returns:
         str: Câu trả lời tổng hợp có trích dẫn link nguồn.
     """
+    if not fallback_results:
+        return (
+            "Hệ thống không tìm thấy quy định này trong cơ sở dữ liệu quy chế nội bộ. "
+            "Bạn vui lòng tra cứu thêm tại Cổng thông tin trường: https://www.haui.edu.vn"
+        )
+
     context_parts = []
     for idx, res in enumerate(fallback_results, start=1):
         context_parts.append(
@@ -112,16 +116,9 @@ HƯỚNG DẪN TRẢ LỜI:
 TRẢ LỜI:"""
 
     try:
-        client = get_genai_client()
-        response = client.models.generate_content(
-            model=LLM_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-            ),
-        )
-        if response and response.text:
-            return response.text.strip()
+        ans = generate_answer(prompt)
+        if ans and "không thể xử lý" not in ans:
+            return ans
     except Exception as e:
         logger.error("Lỗi khi sinh câu trả lời từ search fallback: %s", e)
 

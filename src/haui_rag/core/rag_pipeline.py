@@ -3,11 +3,11 @@
 from collections import OrderedDict
 import logging
 import time
-from typing import Any
+from typing import Any, Iterator
 
 from haui_rag.config import DEFAULT_TOP_K, ENABLE_QUERY_CACHE, QUERY_CACHE_SIZE
 from haui_rag.core.fallback import generate_from_fallback, search_fallback
-from haui_rag.core.generation import build_prompt, generate_answer
+from haui_rag.core.generation import build_prompt, generate_answer, generate_answer_stream
 from haui_rag.core.query_processor import classify_query
 from haui_rag.core.retrieval import retrieve_relevant_contexts
 from haui_rag.utils.helpers import is_safe_query, verify_citations_against_sources
@@ -149,4 +149,51 @@ def rag_query(
             "error": str(e),
             "fallback_used": fallback_used if "fallback_used" in locals() else False,
         }
+
+
+def rag_query_stream(
+    query: str,
+    top_k: int = DEFAULT_TOP_K,
+) -> tuple[list[dict[str, Any]], Iterator[str], dict[str, Any]]:
+    """
+    Thực thi RAG Pipeline dạng Real-time Streaming cho Terminal CLI hoặc WebSocket.
+    Trả về danh sách nguồn trích dẫn ngay sau giai đoạn Retrieval (< 500ms),
+    kèm theo Stream Generator để in câu trả lời tức thì từng token một, không phải chờ đợi.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        top_k: Số lượng văn bản liên quan cần tìm.
+
+    Returns:
+        tuple[list[dict], Iterator[str], dict]:
+            - formatted_sources: Danh sách các nguồn tài liệu trích dẫn
+            - stream_generator: Trình sinh từng token văn bản
+            - meta: Thông tin metadata (query_type, retrieval_time_ms)
+    """
+    start_time = time.perf_counter()
+
+    if not query or not query.strip():
+        raise ValueError("Câu hỏi không được để trống")
+
+    if not is_safe_query(query):
+        def _unsafe_stream() -> Iterator[str]:
+            yield "Xin lỗi, câu hỏi của bạn chứa nội dung không phù hợp với quy định của hệ thống."
+
+        return [], _unsafe_stream(), {"query_type": "unsafe", "retrieval_time_ms": 0}
+
+    q_type = classify_query(query)
+    raw_contexts, formatted_sources = retrieve_relevant_contexts(query, top_k=top_k)
+    retrieval_ms = int((time.perf_counter() - start_time) * 1000)
+
+    prompt = build_prompt(query, raw_contexts)
+    stream_generator = generate_answer_stream(prompt)
+
+    meta = {
+        "query_type": q_type,
+        "retrieval_time_ms": retrieval_ms,
+        "contexts_count": len(raw_contexts),
+    }
+
+    return formatted_sources, stream_generator, meta
+
 

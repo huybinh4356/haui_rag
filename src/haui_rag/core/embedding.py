@@ -3,6 +3,7 @@
 import logging
 import time
 from typing import Optional
+from collections import OrderedDict
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
@@ -19,6 +20,10 @@ logger = logging.getLogger("haui_rag")
 
 # Singleton Gemini Client
 _client: Optional[genai.Client] = None
+
+# In-memory LRU Cache cho embedding vector (tối đa 512 câu hỏi)
+_embedding_cache: OrderedDict[tuple[str, str], list[float]] = OrderedDict()
+_EMBEDDING_CACHE_MAX_SIZE: int = 512
 
 
 def get_genai_client() -> genai.Client:
@@ -49,6 +54,7 @@ def get_embedding(
     """
     Tạo vector embedding 3072 chiều từ văn bản sử dụng Gemini Embedding API.
     Bắt buộc dùng task_type="RETRIEVAL_QUERY" cho câu hỏi tra cứu.
+    Tích hợp LRU Cache giúp tăng tốc tức thì cho các câu hỏi trùng lặp.
 
     Args:
         text: Nội dung văn bản hoặc câu hỏi cần tạo embedding.
@@ -63,6 +69,13 @@ def get_embedding(
     """
     if not text or not isinstance(text, str) or not text.strip():
         raise ValueError("Văn bản cần tạo embedding không được để trống")
+
+    clean_text = text.strip()
+    cache_key = (clean_text, task_type)
+
+    if cache_key in _embedding_cache:
+        _embedding_cache.move_to_end(cache_key)
+        return _embedding_cache[cache_key].copy()
 
     client = get_genai_client()
     delay = INITIAL_RETRY_DELAY
@@ -80,7 +93,12 @@ def get_embedding(
             if response.embeddings and len(response.embeddings) > 0:
                 values = response.embeddings[0].values
                 if values and len(values) == 3072:
-                    return list(values)
+                    vector = list(values)
+                    # Lưu cache
+                    if len(_embedding_cache) >= _EMBEDDING_CACHE_MAX_SIZE:
+                        _embedding_cache.popitem(last=False)
+                    _embedding_cache[cache_key] = vector.copy()
+                    return vector
                 raise RuntimeError(
                     f"Kích thước vector không đúng: {len(values) if values else 0} (yêu cầu 3072)"
                 )
