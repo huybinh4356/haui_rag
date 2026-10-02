@@ -68,8 +68,8 @@ def close_connection_pool() -> None:
         if _pool is not None:
             try:
                 _pool.closeall()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Lỗi khi đóng connection pool: %s", e)
             _pool = None
 
 

@@ -123,14 +123,16 @@ def keyword_search(
             if not results:
                 tokens = [t for t in clean_kw.split() if len(t) > 2][:3]
                 if tokens:
-                    like_patterns = [f"%{tok}%" for tok in tokens]
-                    like_sql = """
+                    # Dùng tất cả tokens kết hợp OR conditions
+                    conditions = " OR ".join(["content ILIKE %s"] * len(tokens))
+                    like_sql = f"""
                         SELECT id, content, metadata, 0.5 AS rank_score
                         FROM documents
-                        WHERE content ILIKE %s
+                        WHERE {conditions}
                         LIMIT %s;
                     """
-                    cur.execute(like_sql, (like_patterns[0], limit))
+                    like_params = [f"%{tok}%" for tok in tokens] + [limit]
+                    cur.execute(like_sql, like_params)
                     for row in cur.fetchall():
                         results.append(
                             {

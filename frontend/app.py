@@ -103,8 +103,9 @@ def query_chat_api(question: str, top_k: int) -> dict[str, Any]:
         )
         if resp.status_code == 200:
             return resp.json()
-    except Exception:
-        pass
+    except Exception as e:
+        import logging as _logging
+        _logging.getLogger("haui_rag").warning("Không gọi được Backend API, chuyển sang Direct Mode: %s", e)
 
     # 2. Fallback trực tiếp gọi haui_rag.core.rag_pipeline
     try:

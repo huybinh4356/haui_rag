@@ -30,16 +30,22 @@ def test_build_prompt_empty_contexts():
 
 
 def test_generate_answer_mocked(monkeypatch):
-    """Kiểm tra generate_answer hoạt động đúng qua mock client."""
+    """Kiểm tra generate_answer hoạt động đúng qua mock — không phụ thuộc provider thật."""
     from unittest.mock import MagicMock
     from haui_rag.core import generation
 
+    expected = "Đây là câu trả lời kiểm thử"
+
+    # Mock Ollama để test không cần Ollama đang chạy
+    monkeypatch.setattr(generation, "call_ollama_generate", lambda prompt, **kw: expected)
+
+    # Mock Gemini để test không cần API key thật
     mock_client = MagicMock()
     mock_resp = MagicMock()
-    mock_resp.text = "Đây là câu trả lời kiểm thử"
+    mock_resp.text = expected
     mock_client.models.generate_content.return_value = mock_resp
-
     monkeypatch.setattr(generation, "get_genai_client", lambda: mock_client)
+
     res = generation.generate_answer("Prompt test")
-    assert res == "Đây là câu trả lời kiểm thử"
+    assert res == expected
 

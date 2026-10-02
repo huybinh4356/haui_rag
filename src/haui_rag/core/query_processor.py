@@ -3,10 +3,7 @@
 import logging
 import re
 from typing import Any
-from google.genai import types
-
-from haui_rag.config import LLM_MODEL
-from haui_rag.core.embedding import get_genai_client
+from haui_rag.config import LLM_MODEL  # noqa: F401 - giữ sẵn cho expand_query với LLM trong tương lai
 
 logger = logging.getLogger("haui_rag")
 

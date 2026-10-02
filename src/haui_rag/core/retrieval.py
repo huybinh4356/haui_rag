@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from google.genai import types
 
@@ -166,7 +167,6 @@ def retrieve_relevant_contexts(
     primary_query = expanded_queries[0]
 
     # 2 & 3. Thực thi song song: Gọi Gemini Embedding và tìm kiếm Keyword trong PostgreSQL
-    from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=2) as executor:
         fut_embed = executor.submit(get_embedding, primary_query, "RETRIEVAL_QUERY")
         fut_kw = executor.submit(keyword_search, primary_query, top_k * 2)

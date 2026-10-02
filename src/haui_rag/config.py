@@ -33,10 +33,10 @@ OLLAMA_NUM_GPU: int = int(os.getenv("OLLAMA_NUM_GPU", "999"))
 # Cấu hình Google Gemini AI
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
-LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.6-flash")
-FALLBACK_LLM_MODEL: str = os.getenv("FALLBACK_LLM_MODEL", "gemini-3.1-flash-lite")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-2.0-flash")
+FALLBACK_LLM_MODEL: str = os.getenv("FALLBACK_LLM_MODEL", "gemini-1.5-flash")
 ACTIVE_LLM_MODEL: str = LOCAL_LLM_MODEL if LLM_PROVIDER == "ollama" else LLM_MODEL
-GEMINI_TIMEOUT_SECONDS: int = 60
+GEMINI_TIMEOUT_SECONDS: int = 300
 MAX_EMBEDDING_RETRIES: int = 3
 INITIAL_RETRY_DELAY: float = 1.0
 

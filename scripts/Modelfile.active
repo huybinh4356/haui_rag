@@ -1,0 +1,10 @@
+FROM qwen3.5:4b
+
+# Cau hinh gioi han VRAM 3.0 - 3.5 GB tren GPU RTX 3050 Laptop
+PARAMETER num_ctx 3072
+PARAMETER num_predict 1024
+PARAMETER temperature 0.1
+PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1.1
+
+SYSTEM """Ban la Tro ly AI tra cuu van ban, quy che va quy dinh cua Truong Dai hoc Cong nghiep Ha Noi (HaUI). Chi su dung thong tin trong ngu canh duoc cung cap de tra loi. Khong bia dat thong tin."""

@@ -104,9 +104,23 @@ def get_embedding(
                 )
             raise RuntimeError("API không trả về vector embedding nào")
 
-        except (APIError, Exception) as e:
+        except APIError as e:
             logger.warning(
-                "Lỗi gọi Gemini Embedding API (lần %d/%d): %s",
+                "Lỗi Gemini API (lần %d/%d): %s",
+                attempt,
+                MAX_EMBEDDING_RETRIES,
+                e,
+            )
+            if attempt == MAX_EMBEDDING_RETRIES:
+                logger.error("Hết số lần retry embedding: %s", e, exc_info=True)
+                raise RuntimeError(f"Tạo embedding thất bại sau {MAX_EMBEDDING_RETRIES} lần: {e}") from e
+            time.sleep(delay)
+            delay *= 2.0
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            logger.warning(
+                "Lỗi không xác định khi tạo embedding (lần %d/%d): %s",
                 attempt,
                 MAX_EMBEDDING_RETRIES,
                 e,

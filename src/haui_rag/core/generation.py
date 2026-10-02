@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 from typing import Any, Iterator
 import requests
@@ -51,6 +52,23 @@ def build_prompt(query: str, contexts: list[dict[str, Any]]) -> str:
     return PROMPT_TEMPLATE.format(context=context_str, question=query.strip())
 
 
+def strip_thinking_tags(text: str) -> str:
+    """
+    Loại bỏ các khối suy luận nội bộ (thinking blocks) mà một số mô hình reasoning
+    như Qwen3.x, DeepSeek-R1 sinh ra trước câu trả lời thực tế.
+    Các thẻ này có dạng: <think>...</think> hoặc <thinking>...</thinking>
+
+    Args:
+        text: Nội dung văn bản gốc từ mô hình.
+
+    Returns:
+        str: Văn bản sau khi đã xóa toàn bộ thinking blocks, strip khoảng trắng.
+    """
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    cleaned = re.sub(r"<thinking>.*?</thinking>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    return cleaned.strip()
+
+
 def call_ollama_generate(
     prompt: str,
     model: str = LOCAL_LLM_MODEL,
@@ -85,6 +103,8 @@ def call_ollama_generate(
         "model": model,
         "prompt": prompt,
         "stream": False,
+        # Tắt thinking mode của Qwen3.x để trả về câu trả lời ngay, không qua chain-of-thought
+        "think": False,
         "options": {
             "temperature": temperature,
             "num_ctx": num_ctx,
@@ -99,9 +119,11 @@ def call_ollama_generate(
         if response.status_code == 200:
             data = response.json()
             answer = data.get("response", "").strip()
+            # Loại bỏ thinking blocks của mô hình reasoning (Qwen3.x, DeepSeek-R1, v.v.)
+            answer = strip_thinking_tags(answer)
             if answer:
                 return answer
-            raise RuntimeError("Ollama trả về phản hồi rỗng")
+            raise RuntimeError("Ollama trả về phản hồi rỗng sau khi xóa thinking blocks")
         if response.status_code == 404:
             raise RuntimeError(
                 f"Mô hình '{model}' chưa được cài đặt trong Ollama. "
@@ -146,6 +168,8 @@ def call_ollama_generate_stream(
         "model": model,
         "prompt": prompt,
         "stream": True,
+        # Tắt thinking mode của Qwen3.x để trả về câu trả lời ngay, không qua chain-of-thought
+        "think": False,
         "options": {
             "temperature": temperature,
             "num_ctx": num_ctx,
@@ -157,13 +181,73 @@ def call_ollama_generate_stream(
     try:
         response = requests.post(endpoint, json=payload, stream=True, timeout=(1.5, float(timeout)))
         if response.status_code == 200:
+            # Rolling accumulator: tích lũy token vào buffer trước khi xử lý thinking blocks
+            # Thiết kế này giải quyết vấn đề <think> tag bị split qua nhiều tokens riêng lẻ
+            acc = ""
+            in_think = False
             for line in response.iter_lines():
                 if line:
                     chunk = json.loads(line.decode("utf-8"))
                     text = chunk.get("response", "")
                     if text:
-                        yield text
-                    if chunk.get("done", False):
+                        acc += text
+
+                    is_done = chunk.get("done", False)
+
+                    # Xử lý buffer: tìm và loại bỏ thinking blocks hoàn chỉnh
+                    while True:
+                        low = acc.lower()
+                        if not in_think:
+                            start = low.find("<think")
+                            if start == -1:
+                                # Không có think block, kiểm tra partial tag ở cuối buffer
+                                last_lt = acc.rfind("<")
+                                if last_lt != -1 and "<think".startswith(low[last_lt:]):
+                                    # Có thể là partial <think> ở cuối — giữ lại
+                                    safe = acc[:last_lt]
+                                    acc = acc[last_lt:]
+                                    if safe:
+                                        yield safe
+                                else:
+                                    if acc:
+                                        yield acc
+                                    acc = ""
+                                break
+                            else:
+                                # Yield phần trước think block
+                                if start > 0:
+                                    yield acc[:start]
+                                tag_end = acc.find(">", start)
+                                if tag_end == -1:
+                                    # Thẻ mở chưa hoàn chỉnh, chờ token tiếp
+                                    acc = acc[start:]
+                                    break
+                                in_think = True
+                                acc = acc[tag_end + 1:]
+                        else:
+                            end = low.find("</think")
+                            if end == -1:
+                                # Vẫn đang trong think block, xử lý partial </think> ở cuối
+                                last_lt = acc.rfind("<")
+                                if last_lt != -1 and "</think".startswith(low[last_lt:]):
+                                    acc = acc[last_lt:]
+                                else:
+                                    acc = ""
+                                break
+                            else:
+                                tag_end = acc.find(">", end)
+                                if tag_end == -1:
+                                    acc = acc[end:]
+                                    break
+                                in_think = False
+                                acc = acc[tag_end + 1:]
+
+                    if is_done:
+                        # Flush phần buffer còn lại sau khi done
+                        if acc and not in_think:
+                            final = strip_thinking_tags(acc).strip()
+                            if final:
+                                yield final
                         break
         else:
             raise RuntimeError(f"Ollama trả về mã lỗi HTTP {response.status_code}")
@@ -219,7 +303,6 @@ def _generate_gemini_answer(prompt: str) -> str:
                     break
 
                 if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    import re
                     match = re.search(r"retry in ([\d\.]+)s", err_str)
                     sleep_time = float(match.group(1)) + 1.0 if match else 5.0
                     logger.info("Gặp 429 Rate Limit, tạm dừng %.1fs để hồi quota Gemini...", sleep_time)
@@ -229,7 +312,7 @@ def _generate_gemini_answer(prompt: str) -> str:
 
                 time.sleep(sleep_time)
 
-    return "Xin lỗi, tôi không thể xử lý câu trả lời lúc này."
+    raise RuntimeError("Sinh câu trả lời thất bại sau khi thử tất cả models và hết số lần retry.")
 
 
 def _generate_gemini_answer_stream(prompt: str) -> Iterator[str]:
@@ -271,6 +354,9 @@ def generate_answer(prompt: str) -> str:
 
     Returns:
         str: Câu trả lời từ LLM.
+
+    Raises:
+        RuntimeError: Nếu tất cả models đều thất bại sau retry.
     """
     if LLM_PROVIDER == "ollama":
         try:

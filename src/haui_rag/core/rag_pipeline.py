@@ -72,6 +72,10 @@ def rag_query(
     q_type = classify_query(query)
     logger.info("Nhận truy vấn: '%s' | Phân loại: %s", query, q_type)
 
+    # Khởi tạo sớm để đảm bảo luôn có giá trị trong except block
+    formatted_sources: list[dict[str, Any]] = []
+    fallback_used = False
+
     try:
         # 3 & 4. Hybrid Search + RRF + Reranking
         raw_contexts, formatted_sources = retrieve_relevant_contexts(query, top_k=top_k)
@@ -81,14 +85,14 @@ def rag_query(
         has_good_match = bool(formatted_sources and best_distance < 0.42)
 
         # 5. Kích hoạt Search Fallback nếu DB không có hoặc độ tương đồng quá kém
-        fallback_used = False
         if not has_good_match and q_type != "out_of_scope":
-            logger.info("Độ tương đồng DB thấp (best_dist=%.4f), thử kích hoạt Search Fallback haui.edu.vn...", best_distance)
+            logger.info("Dộ tương đồng DB thấp (best_dist=%.4f), thử kích hoạt Search Fallback haui.edu.vn...", best_distance)
             fallback_items = search_fallback(query, top_k=3)
             if fallback_items:
                 fallback_answer = generate_from_fallback(query, fallback_items)
                 elapsed_ms = int((time.perf_counter() - start_time) * 1000)
                 logger.info("Đã trả lời thành công qua Search Fallback trong %d ms", elapsed_ms)
+                # Không cache kết quả fallback để tránh lưu câu trả lời thiếu chất lượng
                 return {
                     "answer": fallback_answer,
                     "sources": [
@@ -104,6 +108,7 @@ def rag_query(
                     "response_time_ms": elapsed_ms,
                     "query_type": q_type,
                     "fallback_used": True,
+                    "citation_audit": {"is_grounded": True, "verified_citations": [], "unverified_citations": [], "verification_score": 1.0},
                 }
 
         # 6. Adaptive Prompting V2
@@ -131,8 +136,8 @@ def rag_query(
             "citation_audit": citation_audit,
         }
 
-        # Lưu vào cache nếu thành công
-        if ENABLE_QUERY_CACHE:
+        # Lưu vào cache nếu thành công và câu trả lời hợp lệ
+        if ENABLE_QUERY_CACHE and answer and "không thể xử lý" not in answer:
             if len(_query_cache) >= QUERY_CACHE_SIZE:
                 _query_cache.popitem(last=False)
             _query_cache[cache_key] = final_response.copy()
@@ -144,10 +149,10 @@ def rag_query(
         logger.error("Lỗi trong RAG pipeline: %s", e, exc_info=True)
         return {
             "answer": "Xin lỗi, đã xảy ra lỗi trong quá trình xử lý yêu cầu tra cứu của bạn.",
-            "sources": formatted_sources if "formatted_sources" in locals() else [],
+            "sources": formatted_sources,
             "response_time_ms": elapsed_ms,
             "error": str(e),
-            "fallback_used": fallback_used if "fallback_used" in locals() else False,
+            "fallback_used": fallback_used,
         }
 
 
@@ -159,6 +164,7 @@ def rag_query_stream(
     Thực thi RAG Pipeline dạng Real-time Streaming cho Terminal CLI hoặc WebSocket.
     Trả về danh sách nguồn trích dẫn ngay sau giai đoạn Retrieval (< 500ms),
     kèm theo Stream Generator để in câu trả lời tức thì từng token một, không phải chờ đợi.
+    Hỗ trợ Search Fallback khi độ tương đồng DB thấp.
 
     Args:
         query: Câu hỏi của người dùng.
@@ -168,7 +174,7 @@ def rag_query_stream(
         tuple[list[dict], Iterator[str], dict]:
             - formatted_sources: Danh sách các nguồn tài liệu trích dẫn
             - stream_generator: Trình sinh từng token văn bản
-            - meta: Thông tin metadata (query_type, retrieval_time_ms)
+            - meta: Thông tin metadata (query_type, retrieval_time_ms, fallback_used)
     """
     start_time = time.perf_counter()
 
@@ -179,11 +185,43 @@ def rag_query_stream(
         def _unsafe_stream() -> Iterator[str]:
             yield "Xin lỗi, câu hỏi của bạn chứa nội dung không phù hợp với quy định của hệ thống."
 
-        return [], _unsafe_stream(), {"query_type": "unsafe", "retrieval_time_ms": 0}
+        return [], _unsafe_stream(), {"query_type": "unsafe", "retrieval_time_ms": 0, "fallback_used": False}
 
     q_type = classify_query(query)
     raw_contexts, formatted_sources = retrieve_relevant_contexts(query, top_k=top_k)
     retrieval_ms = int((time.perf_counter() - start_time) * 1000)
+
+    # Kiểm tra chất lượng kết quả tìm kiếm
+    best_distance = formatted_sources[0]["distance"] if formatted_sources else 1.0
+    has_good_match = bool(formatted_sources and best_distance < 0.42)
+
+    # Kích hoạt Search Fallback nếu cần
+    if not has_good_match and q_type != "out_of_scope":
+        logger.info("[Stream] Độ tương đồng thấp (best_dist=%.4f), thử Search Fallback...", best_distance)
+        fallback_items = search_fallback(query, top_k=3)
+        if fallback_items:
+            fallback_sources = [
+                {
+                    "chunk_id": None,
+                    "citation": f"[Web HaUI] {item['title']}",
+                    "distance": None,
+                    "source_type": "web",
+                    "content": f"{item['snippet']}\nLink: {item['link']}",
+                }
+                for item in fallback_items
+            ]
+            prompt_fallback = build_prompt(query, [])
+
+            def _fallback_stream() -> Iterator[str]:
+                yield from generate_answer_stream(prompt_fallback)
+
+            meta = {
+                "query_type": q_type,
+                "retrieval_time_ms": retrieval_ms,
+                "contexts_count": 0,
+                "fallback_used": True,
+            }
+            return fallback_sources, _fallback_stream(), meta
 
     prompt = build_prompt(query, raw_contexts)
     stream_generator = generate_answer_stream(prompt)
@@ -192,6 +230,7 @@ def rag_query_stream(
         "query_type": q_type,
         "retrieval_time_ms": retrieval_ms,
         "contexts_count": len(raw_contexts),
+        "fallback_used": False,
     }
 
     return formatted_sources, stream_generator, meta

@@ -49,11 +49,18 @@ def search_fallback(query: str, top_k: int = 3) -> list[dict[str, Any]]:
                 snippet_text = html.unescape(title_match.group(1).strip()) if title_match else ""
                 snippet_clean = re.sub(r"<.*?>", "", snippet_text)
 
+                raw_link = ""
                 url_match = re.search(r'href="([^"]*uddg=([^"&]*)[^"]*)"', block)
                 if url_match:
                     raw_link = unquote(url_match.group(2))
                 else:
                     link_match = re.search(r'<a class="result__url" href="([^"]*)"', block)
+                    if link_match:
+                        raw_link = unquote(link_match.group(1))
+
+                if not raw_link:
+                    continue
+
                 # Whitelist domain chặt chẽ: chỉ chấp nhận haui.edu.vn hoặc subdomain của haui.edu.vn
                 parsed_url = urlparse(raw_link)
                 host = (parsed_url.hostname or "").lower()
