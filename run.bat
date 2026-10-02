@@ -24,7 +24,7 @@ echo   3. Chi chay Giao dien Chat Streamlit (Port 8501)
 echo   4. Chi chay FastAPI Backend Server (Port 8000)
 echo   5. Cau hinh / Doi mo hinh Local LLM (Qwen, Gemma, Llama)
 echo   6. Chay kiem thu toan bo he thong (Pytest)
-echo   7. Chi mo Cua so Giam sat Log & Loi he thong (Log Monitor)
+echo   7. Chi mo Cua so Giam sat Log va Loi he thong (Log Monitor)
 echo.
 set "choice=1"
 set /p choice="Nhap lua chon [1-7] (mac dinh 1): "
