@@ -3,6 +3,8 @@
 from typing import Callable, Optional
 import streamlit as st
 
+from frontend.styles.theme import get_logo_base64
+
 SUGGESTIONS = [
     "Điều kiện để được xét tốt nghiệp là gì?",
     "Quy định về bảo lưu kết quả học tập?",
@@ -13,26 +15,24 @@ SUGGESTIONS = [
 
 def render_empty_state(on_submit: Optional[Callable[[str], None]] = None) -> None:
     """
-    Hiển thị trạng thái mở đầu trang trọng theo thiết kế mẫu.
+    Hiển thị trạng thái mở đầu trang trọng theo thiết kế mẫu kèm logo trường HaUI.
 
     Args:
         on_submit: Hàm callback khi người dùng nhập câu hỏi hoặc chọn gợi ý.
     """
-    # 1. Khối minh họa học thuật ở trung tâm (Floating Document + Graduation Cap)
+    logo_src = get_logo_base64()
+    logo_elem = (
+        f'<img src="{logo_src}" alt="HaUI Logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 14px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);" />'
+        if logo_src
+        else ""
+    )
+
+    # 1. Khối minh họa học thuật ở trung tâm với Logo HaUI chính thức
     st.markdown(
-        """
+        f"""
         <div class="empty-state-wrapper">
-            <div class="empty-illustration-box">
-                <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
-                    <rect x="6" y="10" width="28" height="34" rx="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2.5"/>
-                    <rect x="11" y="18" width="18" height="3" rx="1.5" fill="#93C5FD"/>
-                    <rect x="11" y="25" width="14" height="3" rx="1.5" fill="#BFDBFE"/>
-                    <rect x="11" y="32" width="16" height="3" rx="1.5" fill="#DBEAFE"/>
-                    <!-- Mũ tốt nghiệp (Graduation Cap) -->
-                    <path d="M34 14L44 19L34 24L24 19L34 14Z" fill="#1E3A8A"/>
-                    <path d="M41 22.5V28C41 30 38 32 34 32C30 32 27 30 27 28V22.5" stroke="#1E3A8A" stroke-width="2" fill="none"/>
-                    <path d="M24 19V25" stroke="#F59E0B" stroke-width="2"/>
-                </svg>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                {logo_elem}
             </div>
             <h2 class="empty-headline">Bạn đang cần tra cứu điều gì?</h2>
             <div class="empty-subheadline">

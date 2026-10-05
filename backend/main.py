@@ -1,5 +1,4 @@
-"""Entry point của FastAPI Backend Server cho dự án haui_rag."""
-
+from contextlib import asynccontextmanager
 import logging
 import os
 import time
@@ -8,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api.chat import router as chat_router
+from backend.api.conversations import router as conversations_router
 from haui_rag.config import (
     ACTIVE_LLM_MODEL,
     BACKEND_HOST,
@@ -19,6 +19,7 @@ from haui_rag.config import (
     validate_config,
 )
 from haui_rag.db.connection import connect_db
+from haui_rag.db.migrator import run_migrations
 from haui_rag.logger import setup_logger
 
 logger = setup_logger("haui_rag")
@@ -31,13 +32,27 @@ except ValueError as e:
     logger.critical("Lỗi cấu hình khởi động: %s. Dừng ứng dụng ngay lập tức.", e)
     raise SystemExit(f"Lỗi cấu hình môi trường: {e}") from e
 
+
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    """Quản lý vòng đời khởi động và dừng ứng dụng."""
+    try:
+        logger.info("Kiểm tra và áp dụng cơ sở dữ liệu migrations cho Application Domain...")
+        run_migrations()
+        logger.info("Hoàn tất kiểm tra migrations.")
+    except Exception as e:
+        logger.warning("Không thể tự động áp dụng migrations khi khởi động: %s", e)
+    yield
+
+
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(
     title="haui_rag API",
     description="Hệ thống Trợ lý AI hỗ trợ tra cứu quy chế, quy định và văn bản HaUI",
-    version="1.1.0",
+    version="1.2.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Cấu hình CORS chặt chẽ: chỉ cho phép các cổng Frontend được ủy quyền
@@ -78,22 +93,26 @@ async def log_requests(request: Request, call_next):
 
 # Đăng ký các router
 app.include_router(chat_router)
+app.include_router(conversations_router)
 
 
 @app.get("/", summary="Health Check")
 async def health_check() -> JSONResponse:
     """Kiểm tra trạng thái hoạt động của Backend và kết nối PostgreSQL."""
     db_status = "connected"
+    doc_count = 0
+    conv_count = 0
     try:
         conn = connect_db()
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM documents;")
             doc_count = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM conversations;")
+            conv_count = cur.fetchone()[0]
         conn.close()
     except Exception as e:
         logger.error("Không thể kết nối DB trong health check: %s", e)
         db_status = f"error: {str(e)}"
-        doc_count = 0
 
     return JSONResponse(
         content={
@@ -101,6 +120,7 @@ async def health_check() -> JSONResponse:
             "status": "online",
             "database": db_status,
             "total_documents": doc_count,
+            "total_conversations": conv_count,
             "embedding_model": EMBEDDING_MODEL,
             "llm_provider": LLM_PROVIDER,
             "llm_model": ACTIVE_LLM_MODEL,

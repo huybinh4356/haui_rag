@@ -19,7 +19,7 @@ def render_about_view() -> None:
     st.markdown(
         """
         #### 1. Định vị sản phẩm
-        **HAUI Regulation Assistant** là hệ thống trợ lý học thuật thông minh được phát triển nhằm phục vụ
+        **Trợ lý Quy chế HaUI** là hệ thống trợ lý học thuật thông minh được phát triển nhằm phục vụ
         cán bộ, giảng viên, học viên và sinh viên Trường Đại học Công nghiệp Hà Nội trong việc tìm kiếm,
         đối chiếu và tra cứu chính xác các điều khoản trong hệ thống văn bản quy chế của Nhà trường.
 

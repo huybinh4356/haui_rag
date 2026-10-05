@@ -33,13 +33,15 @@ def test_init_session_state():
     init_session_state()
 
     assert "conversations" in st.session_state
-    assert len(st.session_state.conversations) >= 1
+    assert isinstance(st.session_state.conversations, dict)
     assert "active_conv_id" in st.session_state
     assert st.session_state.theme_mode == "light"
     assert st.session_state.view_mode == "chat"
     assert st.session_state.top_k == 5
     assert st.session_state.user_mode == "simple"
     assert st.session_state.active_citation_index is None
+    assert "pending_question" in st.session_state
+    assert st.session_state.pending_question is None
 
 
 def test_toggle_theme_mode():
@@ -69,20 +71,21 @@ def test_theme_css_generation():
 def test_create_and_switch_conversation():
     """Kiểm tra tạo mới và chuyển đổi giữa các phiên hội thoại."""
     init_session_state()
-    initial_id = st.session_state.active_conv_id
-    initial_count = len(st.session_state.conversations)
 
-    # Tạo hội thoại mới
-    new_conv = create_new_conversation(title="Tra cứu học phí")
-    new_id = new_conv["id"]
+    # Tạo hội thoại thứ nhất
+    c1 = create_new_conversation(title="Tra cứu học phí")
+    id1 = c1["id"]
+    assert st.session_state.active_conv_id == id1
 
-    assert new_id != initial_id
-    assert st.session_state.active_conv_id == new_id
-    assert len(st.session_state.conversations) == initial_count + 1
+    # Tạo hội thoại thứ hai
+    c2 = create_new_conversation(title="Quy chế đào tạo")
+    id2 = c2["id"]
+    assert id2 != id1
+    assert st.session_state.active_conv_id == id2
 
-    # Chuyển về hội thoại cũ
-    switch_conversation(initial_id)
-    assert st.session_state.active_conv_id == initial_id
+    # Chuyển về hội thoại thứ nhất
+    switch_conversation(id1)
+    assert st.session_state.active_conv_id == id1
 
 
 def test_delete_conversation():

@@ -6,6 +6,7 @@ import streamlit as st
 
 from frontend.components.feedback import render_feedback_section
 from frontend.state.session import set_active_citation
+from frontend.styles.theme import get_logo_base64
 
 
 def render_chat_history(messages: list[dict[str, Any]]) -> None:
@@ -15,11 +16,19 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
     Args:
         messages: Danh sách các tin nhắn gồm role, content, sources, v.v.
     """
+    logo_src = get_logo_base64()
+    logo_img = (
+        f'<img src="{logo_src}" alt="HaUI Logo" '
+        f'style="width: 20px; height: 20px; object-fit: contain; border-radius: 3px;" />'
+        if logo_src
+        else ""
+    )
+
     for idx, msg in enumerate(messages):
         role = msg.get("role")
         content = msg.get("content", "")
-        sources = msg.get("sources", [])
-        resp_time = msg.get("response_time_ms", 0)
+        sources = msg.get("sources") or msg.get("citations") or []
+        resp_time = msg.get("response_time_ms") or msg.get("latency_ms") or 0
         fallback_used = msg.get("fallback_used", False)
 
         if role == "user":
@@ -36,9 +45,10 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
         else:
             # Tin nhắn của Trợ lý AI: Tối giản, không đóng hộp, kiểu chữ học thuật dễ đọc
             st.markdown(
-                """
-                <div style="margin-top: 14px; margin-bottom: 4px;">
-                    <span style="font-size: 0.78rem; font-weight: 700; color: #0B2545; letter-spacing: 0.02em;">
+                f"""
+                <div style="margin-top: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                    {logo_img}
+                    <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-main); letter-spacing: 0.02em;">
                         TRỢ LÝ QUY CHẾ HAUI
                     </span>
                 </div>

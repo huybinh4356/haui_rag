@@ -15,8 +15,9 @@ def render_composer(on_submit: Callable[[str], None]) -> None:
     user_query = st.chat_input("Hỏi về quy chế đào tạo, tốt nghiệp, học phí HaUI...")
 
     # Nếu có câu hỏi được chọn từ thẻ gợi ý ở Empty State
-    if st.session_state.pending_question:
-        user_query = st.session_state.pending_question
+    pending = st.session_state.get("pending_question")
+    if pending:
+        user_query = pending
         st.session_state.pending_question = None
 
     if user_query and user_query.strip():

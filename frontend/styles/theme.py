@@ -5,8 +5,21 @@ Hỗ trợ chuyển đổi mượt mà giữa:
 - Chế độ Tối (Dark Mode): Nền Slate Navy sâu, độ tương phản cao, chống lóa và tương thích hoàn toàn khi trình duyệt bật dark mode.
 """
 
+import base64
+from pathlib import Path
 from typing import Any
 import streamlit as st
+
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "haui_logo.png"
+
+
+def get_logo_base64() -> str:
+    """Trả về chuỗi data:image/png;base64 của logo HaUI để nhúng trực tiếp vào HTML."""
+    if LOGO_PATH.exists():
+        with open(LOGO_PATH, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/png;base64,{encoded}"
+    return ""
 
 # Các token màu sắc Light Mode
 LIGHT_THEME = {

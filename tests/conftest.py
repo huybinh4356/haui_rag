@@ -4,8 +4,11 @@ import sys
 from pathlib import Path
 import pytest
 
-# Đảm bảo src luôn có trong sys.path
-SRC_PATH = Path(__file__).resolve().parent.parent / "src"
+# Đảm bảo root và src luôn có trong sys.path
+ROOT_PATH = Path(__file__).resolve().parent.parent
+SRC_PATH = ROOT_PATH / "src"
+if str(ROOT_PATH) not in sys.path:
+    sys.path.insert(0, str(ROOT_PATH))
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
@@ -38,15 +41,4 @@ def sample_chunks():
             },
             "distance": 0.20,
         },
-    ]
-
-
-@pytest.fixture
-def sample_questions():
-    """Danh sách các câu hỏi mẫu đại diện cho 3 nhóm."""
-    return [
-        {"q": "Điều kiện tốt nghiệp thạc sĩ là gì?", "type": "factual"},
-        {"q": "Thời gian đào tạo thạc sĩ là bao lâu?", "type": "factual"},
-        {"q": "Quy trình xin nghỉ học tạm thời và bảo lưu kết quả?", "type": "procedural"},
-        {"q": "Giá vé máy bay hôm nay bao nhiêu?", "type": "out_of_scope"},
     ]

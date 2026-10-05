@@ -4,6 +4,7 @@ from typing import Any
 import streamlit as st
 
 from frontend.state.session import toggle_theme_mode
+from frontend.styles.theme import get_logo_base64
 
 
 def render_topbar(is_online: bool, health_data: dict[str, Any]) -> None:
@@ -16,22 +17,25 @@ def render_topbar(is_online: bool, health_data: dict[str, Any]) -> None:
     """
     current_theme = st.session_state.get("theme_mode", "light")
     status_text = "Hệ thống hoạt động tốt" if is_online else "Chế độ trực tiếp"
+    logo_src = get_logo_base64()
 
     col_brand, col_status, col_theme = st.columns([6, 3, 2])
 
     with col_brand:
+        logo_html = (
+            f'<img src="{logo_src}" alt="HaUI Logo" style="width: 36px; height: 36px; object-fit: contain; border-radius: 4px;" />'
+            if logo_src
+            else '<div style="font-weight: 800; color: #1E40AF;">HaUI</div>'
+        )
         st.markdown(
-            """
+            f"""
             <div class="topbar-left">
-                <div class="topbar-crest">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FACC15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
-                        <path d="M12 11l4 2-4 2-4-2 4-2z"/>
-                    </svg>
+                <div class="topbar-crest" style="background: transparent; border: none; padding: 0;">
+                    {logo_html}
                 </div>
                 <div>
-                    <h1 class="topbar-brand-title">HAUI <span>Regulation Assistant</span></h1>
-                    <div class="topbar-brand-sub">Trợ lý quy chế và văn bản học vụ HaUI</div>
+                    <h1 class="topbar-brand-title">TRỢ LÝ QUY CHẾ <span>HAUI</span></h1>
+                    <div class="topbar-brand-sub">Hệ thống tra cứu quy chế và văn bản học vụ nhà trường</div>
                 </div>
             </div>
             """,
