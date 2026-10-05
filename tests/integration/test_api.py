@@ -32,3 +32,22 @@ def test_chat_endpoint_injection():
     assert response.status_code == 200
     data = response.json()
     assert "không phù hợp" in data["answer"].lower()
+
+
+def test_feedback_endpoint():
+    """Kiểm tra endpoint POST /api/feedback tiếp nhận đánh giá phản hồi."""
+    response = client.post(
+        "/api/feedback",
+        json={
+            "question": "Điều kiện tốt nghiệp thạc sĩ là gì?",
+            "answer": "Sinh viên cần đáp ứng quy định...",
+            "rating": "helpful",
+            "reason": "",
+            "comment": "Rất rõ ràng",
+            "response_time_ms": 450,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "Cảm ơn" in data["message"]

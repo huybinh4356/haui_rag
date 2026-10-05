@@ -49,9 +49,11 @@ def chat_endpoint(request: ChatRequest) -> ChatResponse:
                 ma_van_ban=s.get("ma_van_ban"),
                 ten_van_ban=s.get("ten_van_ban"),
                 dieu=s.get("dieu"),
+                khoan=s.get("khoan"),
                 distance=s.get("distance"),
                 source_type=s.get("source_type", "database"),
                 content=s.get("content"),
+                metadata=s.get("metadata", {}),
             )
             for s in result.get("sources", [])
         ]
@@ -71,3 +73,28 @@ def chat_endpoint(request: ChatRequest) -> ChatResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi máy chủ khi xử lý tra cứu: {str(e)}",
         ) from e
+
+
+@router.post(
+    "/feedback",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Tiếp nhận phản hồi người dùng",
+    description="Ghi nhận đánh giá chất lượng câu trả lời để cải thiện hệ thống tra cứu quy chế.",
+)
+def feedback_endpoint(request: dict) -> dict:
+    """
+    Tiếp nhận và ghi nhận đánh giá của người dùng vào nhật ký kiểm toán (Audit Log).
+
+    Args:
+        request: Thông tin đánh giá gồm rating, reason, comment, question, answer.
+
+    Returns:
+        dict: Trạng thái tiếp nhận thành công.
+    """
+    rating = request.get("rating", "helpful")
+    reason = request.get("reason", "")
+    comment = request.get("comment", "")
+    logger.info("Nhận phản hồi người dùng: rating=%s, reason=%s, comment=%s",
+                rating, reason, comment)
+    return {"status": "success", "message": "Cảm ơn bạn đã gửi phản hồi đóng góp ý kiến."}

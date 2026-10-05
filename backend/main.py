@@ -35,7 +35,7 @@ except ValueError as e:
 app = FastAPI(
     title="haui_rag API",
     description="Hệ thống Trợ lý AI hỗ trợ tra cứu quy chế, quy định và văn bản HaUI",
-    version="0.1.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )

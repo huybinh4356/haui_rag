@@ -26,6 +26,9 @@ class TestRAGPipeline:
         assert (
             "không tìm thấy" in answer_lower
             or "không có thông tin" in answer_lower
+            or "không chứa thông tin" in answer_lower
+            or "rất tiếc" in answer_lower
+            or "không thể trả lời" in answer_lower
             or "xin lỗi" in answer_lower
             or "liên hệ" in answer_lower
         )

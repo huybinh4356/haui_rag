@@ -30,9 +30,29 @@ class Source(BaseModel):
     ma_van_ban: Optional[str] = Field(None, description="Mã số văn bản quy chế")
     ten_van_ban: Optional[str] = Field(None, description="Tên đầy đủ của văn bản")
     dieu: Optional[str] = Field(None, description="Điều số")
+    khoan: Optional[str] = Field(None, description="Khoản số")
     distance: Optional[float] = Field(None, description="Khoảng cách cosine (None nếu nguồn từ web fallback)")
     source_type: Optional[str] = Field("database", description="Loại nguồn trích dẫn: database hoặc web")
     content: Optional[str] = Field(None, description="Nội dung trích đoạn từ văn bản")
+    metadata: Optional[dict] = Field(default_factory=dict, description="Metadata mở rộng của văn bản")
+
+
+class FeedbackRequest(BaseModel):
+    """Schema request cho endpoint tiếp nhận đánh giá phản hồi."""
+
+    question: str = Field(..., description="Câu hỏi người dùng đã gửi")
+    answer: str = Field(..., description="Câu trả lời đã nhận được")
+    rating: str = Field(..., description="Đánh giá: helpful hoặc unhelpful")
+    reason: Optional[str] = Field(None, description="Lý do chi tiết khi chưa hài lòng")
+    comment: Optional[str] = Field(None, description="Ý kiến đóng góp của người dùng")
+    response_time_ms: Optional[int] = Field(None, description="Thời gian phản hồi tính bằng ms")
+
+
+class FeedbackResponse(BaseModel):
+    """Schema response sau khi tiếp nhận đánh giá."""
+
+    status: str = Field(..., description="Trạng thái xử lý: success")
+    message: str = Field(..., description="Thông điệp phản hồi cho người dùng")
 
 
 class ChatResponse(BaseModel):
