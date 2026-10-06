@@ -6,29 +6,43 @@
 import os
 import re
 import json
+import shutil
+from datetime import datetime
+from pathlib import Path
 import pdfplumber
 import pymupdf
 import numpy as np
-import easyocr
-from datetime import datetime
-from pathlib import Path
 
 
-# ============================================================
 # PHẦN 1: CẤU HÌNH
-# ============================================================
 
-INPUT_DIR = "./data/raw_pdf"
-OUTPUT_DIR = "./data/output_json"
-OCR_CACHE_DIR = "./data/ocr_cache"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+INPUT_DIR = str(PROJECT_ROOT / "data" / "raw_pdf")
+OUTPUT_DIR = str(PROJECT_ROOT / "data" / "output_json")
+OCR_CACHE_DIR = str(PROJECT_ROOT / "data" / "ocr_cache")
+PROCESSED_DIR = os.getenv("PROCESSED_DIR", str(PROJECT_ROOT / "data" / "data_processed"))
+if os.path.exists(str(PROJECT_ROOT / "data_processed")) and not os.path.exists(PROCESSED_DIR):
+    PROCESSED_DIR = str(PROJECT_ROOT / "data_processed")
+
+os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(OCR_CACHE_DIR, exist_ok=True)
+os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# Khởi tạo EasyOCR (chỉ 1 lần)
-print("🔧 Đang khởi tạo EasyOCR (lần đầu sẽ tải model ~100MB)...")
-ocr_reader = easyocr.Reader(['vi', 'en'], gpu=False, verbose=False)
-print("✓ EasyOCR đã sẵn sàng\n")
+# Khởi tạo EasyOCR theo cơ chế lazy load (chỉ tải khi thực sự cần OCR)
+ocr_reader = None
+
+
+def get_ocr_reader():
+    """Khởi tạo và trả về instance EasyOCR khi có file cần OCR."""
+    global ocr_reader
+    if ocr_reader is None:
+        import easyocr
+        print("Dang khoi tao EasyOCR (lan dau se tai model ~100MB)...")
+        ocr_reader = easyocr.Reader(['vi', 'en'], gpu=False, verbose=False)
+        print("EasyOCR da san sang\n")
+    return ocr_reader
 
 
 # ============================================================
@@ -54,7 +68,7 @@ def has_text_layer(pdf_path, min_chars_per_page=50):
             return avg_chars > min_chars_per_page
     
     except Exception as e:
-        print(f"   ⚠️  Lỗi kiểm tra text layer: {e}")
+        print(f"   Loi kiem tra text layer: {e}")
         return False
 
 
@@ -72,21 +86,22 @@ def ocr_pdf_with_easyocr(pdf_path, dpi=300):
     
     # --- Kiểm tra cache ---
     if os.path.exists(cache_path):
-        print(f"   ⚡ Dùng cache OCR có sẵn")
+        print("   Dung cache OCR co san")
         with open(cache_path, "r", encoding="utf-8") as f:
             return f.read()
     
-    print(f"   🔍 Đang OCR (có thể mất 1-3 phút)...")
+    print("   Dang OCR (co the mat 1-3 phut)...")
     
     try:
         # --- Bước 1: Mở PDF bằng PyMuPDF ---
         doc = pymupdf.open(pdf_path)
-        print(f"   📄 Đã mở PDF: {doc.page_count} trang")
+        print(f"   Da mo PDF: {doc.page_count} trang")
         
         # Tính hệ số zoom để đạt DPI mong muốn
         zoom = dpi / 72
         mat = pymupdf.Matrix(zoom, zoom)
         
+        reader = get_ocr_reader()
         full_text = ""
         
         # --- Bước 2: Lặp qua từng trang ---
@@ -112,7 +127,7 @@ def ocr_pdf_with_easyocr(pdf_path, dpi=300):
             # --- Bước 3: Chạy OCR ---
             # detail=0: chỉ lấy text
             # paragraph=False: không gộp thành đoạn
-            results = ocr_reader.readtext(img_array, detail=0, paragraph=False)
+            results = reader.readtext(img_array, detail=0, paragraph=False)
             
             # --- Bước 4: Ghép text ---
             if results:
@@ -121,7 +136,7 @@ def ocr_pdf_with_easyocr(pdf_path, dpi=300):
             
             # In tiến độ
             if (page_num + 1) % 5 == 0 or (page_num + 1) == doc.page_count:
-                print(f"   ⏳ Đã OCR {page_num + 1}/{doc.page_count} trang")
+                print(f"   Da OCR {page_num + 1}/{doc.page_count} trang")
         
         doc.close()
         
@@ -129,11 +144,11 @@ def ocr_pdf_with_easyocr(pdf_path, dpi=300):
         with open(cache_path, "w", encoding="utf-8") as f:
             f.write(full_text)
         
-        print(f"   ✓ OCR xong: {len(full_text)} ký tự")
+        print(f"   OCR xong: {len(full_text)} ky tu")
         return full_text
     
     except Exception as e:
-        print(f"   ❌ Lỗi OCR: {e}")
+        print(f"   Loi OCR: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -150,7 +165,7 @@ def extract_text_smart(pdf_path):
     - Nếu là PDF scan → Dùng PyMuPDF + EasyOCR
     """
     if has_text_layer(pdf_path):
-        print(f"   📝 PDF có text layer → Đọc trực tiếp")
+        print("   PDF co text layer -> Doc truc tiep")
         try:
             full_text = ""
             with pdfplumber.open(pdf_path) as pdf:
@@ -160,10 +175,10 @@ def extract_text_smart(pdf_path):
                         full_text += "\n" + text
             return full_text
         except Exception as e:
-            print(f"   ❌ Lỗi đọc text layer: {e}")
+            print(f"   Loi doc text layer: {e}")
             return None
     else:
-        print(f"   🖼️  PDF scan → Chuyển sang OCR")
+        print("   PDF scan -> Chuyen sang OCR")
         return ocr_pdf_with_easyocr(pdf_path)
 
 
@@ -300,7 +315,7 @@ def chunk_legal_document(text, metadata_base):
     
     # Nếu không có cấu trúc Điều → Fallback
     if len(parts) < 3:
-        print(f"   ⚠️  Không có cấu trúc Điều → Cắt theo đoạn")
+        print("   Khong co cau truc Dieu -> Cat theo doan")
         return chunk_by_paragraph(text, metadata_base)
     
     for i in range(1, len(parts), 2):
@@ -319,6 +334,8 @@ def chunk_legal_document(text, metadata_base):
             
             khoan_match = re.match(r"\n?(\d+)\.", khoan_text)
             khoan_number = khoan_match.group(1) if khoan_match else "Mở đầu"
+            
+            chunk_content = f"{dieu_title} {khoan_text.strip()}"
             
             # Nếu một Khoản quá dài (> 1500 ký tự), thực hiện sub-chunking có overlap để tối ưu embedding
             MAX_CHUNK_CHARS = 1500
@@ -386,48 +403,46 @@ def chunk_by_paragraph(text, metadata_base, chunk_size=800):
 # ============================================================
 
 def process_single_file(pdf_path):
-    """Xử lý một file PDF: Đọc → OCR (nếu cần) → Làm sạch → Chunking."""
+    """Xử lý một file PDF: Đọc -> OCR (nếu cần) -> Làm sạch -> Chunking."""
     filename = os.path.basename(pdf_path)
-    print(f"\n📄 Đang xử lý: {filename}")
+    print(f"\nDang xu ly: {filename}")
     
     # 1. Đọc PDF
     text = extract_text_smart(pdf_path)
     if not text or len(text) < 100:
-        print(f"   ❌ File rỗng hoặc OCR thất bại")
+        print("   File rong hoac OCR that bai")
         return None
     
     # 2. Làm sạch văn bản
     text = clean_ocr_text(text)
-    print(f"   ✓ Sau khi làm sạch: {len(text)} ký tự")
+    print(f"   Sau khi lam sach: {len(text)} ky tu")
     
     # 3. Trích xuất metadata
     metadata = extract_metadata(text, filename)
-    print(f"   ✓ Metadata: Mã={metadata['ma_van_ban']}, Ngày={metadata['ngay_ban_hanh']}")
+    print(f"   Metadata: Ma={metadata['ma_van_ban']}, Ngay={metadata['ngay_ban_hanh']}")
     
     # 4. Chunking
     chunks = chunk_legal_document(text, metadata)
-    print(f"   ✓ Đã cắt thành {len(chunks)} chunks")
+    print(f"   Da cat thanh {len(chunks)} chunks")
     
     return chunks
 
 
-# ============================================================
 # PHẦN 9: HÀM CHÍNH
-# ============================================================
 
 def process_all_files():
     """Quét tất cả file PDF trong thư mục và xử lý."""
-    print("=" * 60)
-    print("🚀 BẮT ĐẦU XỬ LÝ HÀNG LOẠT FILE PDF (EASYOCR)")
-    print("=" * 60)
+    print("-" * 60)
+    print("BAT DAU XU LY HANG LOAT FILE PDF (EASYOCR)")
+    print("-" * 60)
     
     pdf_files = list(Path(INPUT_DIR).glob("*.pdf"))
     
     if not pdf_files:
-        print(f"❌ Không tìm thấy file PDF nào trong {INPUT_DIR}")
+        print(f"Khong tim thay file PDF nao trong {INPUT_DIR}")
         return
     
-    print(f"📁 Tìm thấy {len(pdf_files)} file PDF\n")
+    print(f"Tim thay {len(pdf_files)} file PDF\n")
     
     all_chunks = []
     summary = []
@@ -444,33 +459,53 @@ def process_all_files():
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(chunks, f, ensure_ascii=False, indent=2)
             
-            print(f"   💾 Đã lưu: {output_path}")
+            print(f"   Da luu: {output_path}")
             
             all_chunks.extend(chunks)
             summary.append({
                 "file": pdf_path.name,
                 "so_chunk": len(chunks),
-                "trang_thai": "✓"
+                "trang_thai": "OK"
             })
+            
+            # Di chuyển file PDF đã hoàn tất sang thư mục lưu trữ đã xử lý
+            processed_file_path = os.path.join(PROCESSED_DIR, pdf_path.name)
+            if os.path.exists(processed_file_path):
+                os.remove(processed_file_path)
+            shutil.move(str(pdf_path), processed_file_path)
+            print(f"   Da chuyen file sang: {processed_file_path}")
         else:
             summary.append({
                 "file": pdf_path.name,
                 "so_chunk": 0,
-                "trang_thai": "✗"
+                "trang_thai": "FAIL"
             })
     
-    # Lưu file tổng hợp
+    # Cap nhat all_chunks.json tu tat ca cac file json trong OUTPUT_DIR
+    all_chunks_combined = []
+    for json_file in sorted(Path(OUTPUT_DIR).glob("*.json")):
+        if json_file.name == "all_chunks.json":
+            continue
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                file_chunks = json.load(f)
+                if isinstance(file_chunks, list):
+                    all_chunks_combined.extend(file_chunks)
+        except Exception as e:
+            print(f"   Loi doc {json_file.name}: {e}")
+    
     all_output_path = os.path.join(OUTPUT_DIR, "all_chunks.json")
     with open(all_output_path, "w", encoding="utf-8") as f:
-        json.dump(all_chunks, f, ensure_ascii=False, indent=2)
+        json.dump(all_chunks_combined, f, ensure_ascii=False, indent=2)
     
-    # Báo cáo tổng kết
-    print("\n" + "=" * 60)
-    print("📊 BÁO CÁO TỔNG KẾT")
-    print("=" * 60)
-    print(f"Tổng file xử lý: {len(summary)}")
-    print(f"Tổng chunk: {len(all_chunks)}")
-    print(f"File tổng hợp: {all_output_path}\n")
+    # Bao cao tong ket
+    print("\n" + "-" * 50)
+    print("BAO CAO TONG KET")
+    print("-" * 50)
+    print(f"Tong file xu ly moi: {len(summary)}")
+    print(f"Tong chunk moi: {len(all_chunks)}")
+    print(f"Tong chunk toan bo he thong: {len(all_chunks_combined)}")
+    print(f"File tong hop: {all_output_path}\n")
     for item in summary:
         print(f"  [{item['trang_thai']}] {item['file']}: {item['so_chunk']} chunks")
 

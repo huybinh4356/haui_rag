@@ -16,7 +16,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-from haui_rag.config import DATA_DIR
+from haui_rag.config import BASE_DIR, DATA_DIR
 from haui_rag.core.rag_pipeline import rag_query
 from haui_rag.logger import setup_logger
 
@@ -25,7 +25,7 @@ logger = setup_logger("evaluation")
 
 def run_benchmark(
     max_questions: int = 30,
-    output_report_file: str = "data/test_data/evaluation_report.json",
+    output_report_file: str | Path | None = None,
     delay_between_calls: float = 3.0,
 ):
     """
@@ -147,7 +147,13 @@ def run_benchmark(
     }
 
     # Xuất file báo cáo
-    out_path = Path(output_report_file)
+    if output_report_file is None:
+        out_path = DATA_DIR / "test_data" / "evaluation_report.json"
+    else:
+        out_path = Path(output_report_file)
+        if not out_path.is_absolute():
+            out_path = BASE_DIR / out_path
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
@@ -157,7 +163,7 @@ def run_benchmark(
     print(f"- Ty le ao giac (Hallucination Rate):          {hallucination_rate:.1f}%  (Muc tieu: < 5%)")
     print(f"- Thoi gian phan hoi trung binh:              {avg_latency:.2f}s")
     print(f"- Thoi gian phan hoi P95:                     {p95_latency:.2f}s  (Muc tieu: < 5.0s)")
-    print(f"- Chi tiet bao cao da duoc luu tai:           {output_report_file}")
+    print(f"- Chi tiet bao cao da duoc luu tai:           {out_path}")
 
 
 if __name__ == "__main__":

@@ -8,9 +8,15 @@
 """
 
 import json
+import os
 from pathlib import Path
+import sys
 import time
 import numpy as np
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from haui_rag.config import BASE_DIR
 from haui_rag.core.retrieval import retrieve_relevant_contexts

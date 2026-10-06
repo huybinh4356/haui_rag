@@ -10,6 +10,7 @@ __pycache__/
 data/ocr_cache/
 data/logs/
 data/output_json/
+data/data_processed/
 
 # IDE
 .vscode/

@@ -5,6 +5,7 @@
 import os
 import json
 import time
+from pathlib import Path
 import psycopg2
 from psycopg2.extras import Json
 from pgvector.psycopg2 import register_vector
@@ -34,8 +35,10 @@ if not DB_PASSWORD:
 http_options = types.HttpOptions(timeout=300000)
 client = genai.Client(api_key=GEMINI_API_KEY, http_options=http_options)
 
-INPUT_JSON_DIR = "./data/output_json"
-PROGRESS_FILE = "./data/embedding_progress.json"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+INPUT_JSON_DIR = str(PROJECT_ROOT / "data" / "output_json")
+PROGRESS_FILE = str(PROJECT_ROOT / "data" / "embedding_progress.json")
 EMBEDDING_MODEL = "gemini-embedding-001"
 
 SLEEP_BETWEEN_CHUNKS = 2.0   # Nghỉ giữa các chunk

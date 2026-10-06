@@ -1,11 +1,12 @@
+import json
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 import psycopg2
 from pgvector.psycopg2 import register_vector
-import json
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 # 1. Kết nối tới database
 conn = psycopg2.connect(
