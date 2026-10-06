@@ -3,8 +3,6 @@
 from typing import Any, Optional
 import streamlit as st
 
-from frontend.state.session import set_active_citation
-
 # Dữ liệu nguồn mẫu hiển thị khi ở trạng thái mở đầu
 DEFAULT_PRESET_SOURCES = [
     {
@@ -43,14 +41,13 @@ def render_evidence_panel(
     citation_audit: Optional[dict[str, Any]] = None,
 ) -> None:
     """
-    Hiển thị bảng nguồn chứng cứ tài liệu văn bản HaUI đúng chuẩn thiết kế.
+    Hiển thị bảng nguồn chứng cứ tài liệu văn bản HaUI bám theo màn hình khi cuộn.
 
     Args:
         sources: Danh sách các tài liệu trích dẫn của câu trả lời gần nhất.
-        active_idx: Chỉ số trích dẫn đang được người dùng bấm chọn để xem đối chiếu.
+        active_idx: Không còn sử dụng (giữ để tương thích tham số gọi hàm).
         citation_audit: Dữ liệu thẩm định nguồn tự động từ backend.
     """
-    # Nếu chưa có câu hỏi nào, hiển thị danh mục 3 tài liệu quy chế mẫu từ thiết kế
     display_sources = sources if sources else DEFAULT_PRESET_SOURCES
     count_label = f"{len(display_sources)} tài liệu được sử dụng"
 
@@ -70,64 +67,13 @@ def render_evidence_panel(
         unsafe_allow_html=True,
     )
 
-    # 1. Chế độ xem chi tiết trích dẫn được chọn
-    if active_idx is not None and 0 <= active_idx < len(display_sources):
-        src = display_sources[active_idx]
-        mvb = src.get("ma_van_ban") or src.get("ten_van_ban") or "Quy chế HaUI"
-        tvb = src.get("ten_van_ban") or mvb
-        dieu = src.get("dieu") or ""
-        khoan = src.get("khoan") or ""
-        content = src.get("content") or ""
-        doc_type = src.get("doc_type") or ("QĐ" if "QĐ" in mvb else "Quy chế")
-
-        clause_parts = []
-        if dieu:
-            clause_parts.append(f"Điều {dieu}")
-        if khoan and khoan != "Mở đầu":
-            clause_parts.append(f"Khoản {khoan}")
-        clause_str = " · ".join(clause_parts) if clause_parts else "Toàn văn điều khoản"
-
-        st.markdown(
-            f"""
-            <div class="evidence-card evidence-card-selected">
-                <div class="card-header-line">
-                    <span class="num-circle">{active_idx + 1}</span>
-                    <span class="card-doc-title">{tvb}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                </div>
-                <div class="card-tags-row">
-                    <span class="pill-tag">{doc_type}</span>
-                    <span class="pill-clause">{clause_str}</span>
-                </div>
-                <div class="card-quote-snippet">
-                    "{content.strip()}"
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button("Xem danh sách tất cả nguồn", key="btn_clear_citation_focus", use_container_width=True):
-            set_active_citation(None)
-            st.rerun()
-
-        # Thông tin văn bản mở rộng
-        with st.expander("Thông tin pháp lý văn bản", expanded=False):
-            st.markdown(f"**Mã số văn bản:** `{mvb}`")
-            st.markdown(f"**Tên đầy đủ:** {tvb}")
-            st.caption("Chức năng tra cứu toàn văn theo chương điều sẽ được kích hoạt ở bản cập nhật tiếp theo.")
-
-        return
-
-    # 2. Chế độ hiển thị danh sách các thẻ chứng cứ
+    # Hiển thị toàn bộ danh sách các thẻ chứng cứ trực quan, không cần nút bấm chuyển đổi
     for idx, src in enumerate(display_sources):
         mvb = src.get("ma_van_ban") or src.get("ten_van_ban") or "Quy chế HaUI"
         tvb = src.get("ten_van_ban") or mvb
         dieu = src.get("dieu") or ""
         khoan = src.get("khoan") or ""
-        content = src.get("content") or ""
+        content = (src.get("content") or "").strip()
         doc_type = src.get("doc_type") or ("QĐ" if "QĐ" in mvb else "Quy chế")
 
         clause_parts = []
@@ -137,9 +83,18 @@ def render_evidence_panel(
             clause_parts.append(f"Khoản {khoan}")
         clause_str = " · ".join(clause_parts) if clause_parts else "Toàn văn"
 
-        snippet = content.strip().replace("\n", " ")
-        if len(snippet) > 140:
-            snippet = snippet[:140] + "..."
+        clean_snippet = content.replace("\n", " ")
+        if len(clean_snippet) > 160:
+            snippet = clean_snippet[:160] + "..."
+            details_html = f"""
+            <details class="evidence-details">
+                <summary>Toàn văn trích đoạn</summary>
+                <div class="evidence-full-text">{content}</div>
+            </details>
+            """
+        else:
+            snippet = clean_snippet
+            details_html = ""
 
         st.markdown(
             f"""
@@ -147,9 +102,6 @@ def render_evidence_panel(
                 <div class="card-header-line">
                     <span class="num-circle">{idx + 1}</span>
                     <span class="card-doc-title">{tvb}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
                 </div>
                 <div class="card-tags-row">
                     <span class="pill-tag">{doc_type}</span>
@@ -158,31 +110,27 @@ def render_evidence_panel(
                 <div class="card-quote-snippet">
                     "{snippet}"
                 </div>
+                {details_html}
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Cho phép người dùng bấm để đối chiếu chi tiết
-        if st.button(f"Xem chi tiết nguồn #{idx + 1}", key=f"btn_src_detail_{idx}", use_container_width=True):
-            set_active_citation(idx)
-            st.rerun()
-
-    # 3. Banner xanh thông tin ở đáy Evidence Panel
+    # Khung thông báo hỗ trợ ở đáy bảng
     st.markdown(
         """
         <div class="info-footer-box">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
             <div>
                 <div class="info-footer-title">
-                    Bạn đang xem nguồn tham khảo từ kho tài liệu chính thức của HaUI.
+                    Cơ sở dữ liệu quy chế chính thức HaUI
                 </div>
                 <div class="info-footer-sub">
-                    Nhấn vào từng nguồn để xem chi tiết hoặc mở toàn văn.
+                    Bảng nguồn tự động di chuyển theo mạch hội thoại để tiện đối chiếu.
                 </div>
             </div>
         </div>

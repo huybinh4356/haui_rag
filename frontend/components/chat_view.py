@@ -5,7 +5,6 @@ from typing import Any
 import streamlit as st
 
 from frontend.components.feedback import render_feedback_section
-from frontend.state.session import set_active_citation
 from frontend.styles.theme import get_logo_base64
 
 
@@ -70,22 +69,6 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
 
             # Nội dung câu trả lời chính
             st.markdown(f'<div class="message-assistant-body">{content}</div>', unsafe_allow_html=True)
-
-            # Thanh trích dẫn tương tác (Interactive Citation Bar)
-            if sources:
-                st.markdown(
-                    '<div style="font-size: 0.78rem; font-weight: 600; color: #64748B; margin-top: 8px; margin-bottom: 4px;">TÀI LIỆU TRÍCH DẪN:</div>',
-                    unsafe_allow_html=True,
-                )
-                cite_cols = st.columns(min(len(sources), 4))
-                for s_idx, src in enumerate(sources[:4]):
-                    col = cite_cols[s_idx]
-                    mvb = src.get("ma_van_ban") or "Quy chế"
-                    label = f"[{s_idx + 1}] {mvb}"
-                    with col:
-                        if st.button(label, key=f"cite_btn_{idx}_{s_idx}", use_container_width=True):
-                            set_active_citation(s_idx)
-                            st.rerun()
 
             # Thông tin thời gian xử lý và đánh giá phản hồi
             foot_col1, _ = st.columns([3, 7])

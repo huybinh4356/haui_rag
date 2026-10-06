@@ -3,23 +3,21 @@
 from typing import Any
 import streamlit as st
 
-from frontend.state.session import toggle_theme_mode
 from frontend.styles.theme import get_logo_base64
 
 
 def render_topbar(is_online: bool, health_data: dict[str, Any]) -> None:
     """
-    Hiển thị thanh tiêu đề tối giản và chỉ báo trạng thái hoạt động của hệ thống kèm nút đổi theme.
+    Hiển thị thanh tiêu đề tối giản và chỉ báo trạng thái hoạt động của hệ thống.
 
     Args:
         is_online: Trạng thái kết nối với Backend API.
         health_data: Dữ liệu phản hồi từ endpoint kiểm tra sức khỏe.
     """
-    current_theme = st.session_state.get("theme_mode", "light")
     status_text = "Hệ thống hoạt động tốt" if is_online else "Chế độ trực tiếp"
     logo_src = get_logo_base64()
 
-    col_brand, col_status, col_theme = st.columns([6, 3, 2])
+    col_brand, col_status = st.columns([8, 4])
 
     with col_brand:
         logo_html = (
@@ -54,9 +52,3 @@ def render_topbar(is_online: bool, health_data: dict[str, Any]) -> None:
             """,
             unsafe_allow_html=True,
         )
-
-    with col_theme:
-        theme_label = "Giao diện: Tối" if current_theme == "light" else "Giao diện: Sáng"
-        if st.button(theme_label, key="btn_toggle_theme", use_container_width=True):
-            toggle_theme_mode()
-            st.rerun()

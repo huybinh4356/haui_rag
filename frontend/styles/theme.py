@@ -72,17 +72,17 @@ DARK_THEME = {
 }
 
 
-def get_theme_css(mode: str = "light") -> str:
+def get_theme_css(mode: str = "dark") -> str:
     """
-    Sinh chuỗi CSS định dạng hoàn chỉnh tương thích theo chế độ sáng hoặc tối.
+    Sinh chuỗi CSS định dạng hoàn chỉnh theo giao diện Tối (Dark Mode) mặc định.
 
     Args:
-        mode: "light" hoặc "dark".
+        mode: Mặc định "dark".
 
     Returns:
         str: Chuỗi HTML <style> áp dụng lên ứng dụng.
     """
-    t = DARK_THEME if mode == "dark" else LIGHT_THEME
+    t = DARK_THEME
 
     return f"""
 <style>
@@ -417,16 +417,264 @@ div[data-testid="column"] .stButton > button {{
     background-repeat: no-repeat;
     background-size: contain;
 }}
+
+/* 6. Định dạng khung thanh nhập câu hỏi và chân trang */
+div[data-testid="stBottom"] {{
+    background-color: var(--bg-page) !important;
+    background: var(--bg-page) !important;
+}}
+
+div[data-testid="stBottom"] > div,
+div[data-testid="stBottom"] [data-testid="stVerticalBlock"],
+div[data-testid="stBottom"] [data-testid="stHorizontalBlock"] {{
+    background-color: transparent !important;
+    background: transparent !important;
+}}
+
+div[data-testid="stChatInput"],
+.stChatInput,
+div[data-testid="stChatInputContainer"],
+div[data-testid="stChatFloatingInputContainer"] {{
+    background-color: transparent !important;
+    background: transparent !important;
+}}
+
+/* Khung viền và màu nền của DUY NHẤT thanh câu hỏi - CỐ ĐỊNH NỀN XÁM, CHỮ TRẮNG */
+div[data-testid="stChatInput"] > div,
+.stChatInput > div {{
+    background-color: #262730 !important;
+    background: #262730 !important;
+    border: 1.5px solid #3F444E !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+    transition: all 0.2s ease-in-out !important;
+}}
+
+/* Hiệu ứng khi focus vào thanh câu hỏi */
+div[data-testid="stChatInput"] > div:focus-within,
+.stChatInput > div:focus-within {{
+    border-color: #185EE0 !important;
+    box-shadow: 0 0 0 2px rgba(24, 94, 224, 0.35) !important;
+}}
+
+/* Khử triệt để mọi nền và viền phụ của các thẻ div lồng bên trong stChatInput */
+div[data-testid="stChatInput"] > div div,
+.stChatInput > div div,
+div[data-testid="stChatInput"] [data-baseweb],
+.stChatInput [data-baseweb] {{
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}}
+
+/* Màu chữ và placeholder bên trong thanh câu hỏi - CỐ ĐỊNH CHỮ TRẮNG */
+div[data-testid="stChatInput"] textarea,
+.stChatInput textarea {{
+    background-color: transparent !important;
+    background: transparent !important;
+    color: #FFFFFF !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    caret-color: #FFFFFF !important;
+    border: none !important;
+    box-shadow: none !important;
+}}
+
+div[data-testid="stChatInput"] textarea::placeholder,
+.stChatInput textarea::placeholder {{
+    color: #9CA3AF !important;
+    opacity: 0.85 !important;
+}}
+
+/* Nút gửi màu đỏ HaUI */
+div[data-testid="stChatInput"] button,
+.stChatInput button,
+button[data-testid="stChatInputSubmitButton"] {{
+    background-color: #E02424 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 8px !important;
+    transition: background-color 0.15s ease !important;
+}}
+
+div[data-testid="stChatInput"] button:hover,
+.stChatInput button:hover,
+button[data-testid="stChatInputSubmitButton"]:hover {{
+    background-color: #B91C1C !important;
+}}
+
+div[data-testid="stChatInput"] button svg,
+.stChatInput button svg,
+button[data-testid="stChatInputSubmitButton"] svg {{
+    fill: #FFFFFF !important;
+    stroke: #FFFFFF !important;
+    color: #FFFFFF !important;
+}}
+
+div[data-testid="stChatInput"] button:disabled,
+.stChatInput button:disabled,
+button[data-testid="stChatInputSubmitButton"]:disabled {{
+    background-color: var(--border-color) !important;
+    color: var(--text-subtle) !important;
+    opacity: 0.4 !important;
+}}
+
+div[data-testid="stChatInput"] button:disabled svg,
+.stChatInput button:disabled svg,
+button[data-testid="stChatInputSubmitButton"]:disabled svg {{
+    fill: var(--text-subtle) !important;
+    stroke: var(--text-subtle) !important;
+    color: var(--text-subtle) !important;
+}}
+
+/* 7. Định dạng dòng tin nhắn hội thoại */
+.message-bubble-user {{
+    background-color: var(--active-bg);
+    border: 1px solid var(--active-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: var(--text-main);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}}
+
+.message-role-label {{
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}}
+
+.message-assistant-body {{
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text-main);
+    margin-bottom: 12px;
+}}
+
+.fallback-banner {{
+    background-color: var(--info-box-bg);
+    border: 1px solid var(--info-box-border);
+    color: var(--info-box-text);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}}
+
+/* 8. Màu chữ Markdown và thanh tìm kiếm ở màn hình ngoài (Empty State Search Bar) - CỐ ĐỊNH NỀN XÁM, CHỮ TRẮNG */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span,
+[data-testid="stMarkdownContainer"] li {{
+    color: var(--text-main);
+}}
+
+div[data-testid="stTextInput"] div[data-baseweb="input"],
+div[data-testid="stTextInput"] div[data-baseweb="base-input"] {{
+    background-color: #262730 !important;
+    background: #262730 !important;
+    border: 1.5px solid #3F444E !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+    transition: all 0.2s ease-in-out !important;
+}}
+
+div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+div[data-testid="stTextInput"] div[data-baseweb="base-input"]:focus-within {{
+    border-color: #185EE0 !important;
+    box-shadow: 0 0 0 2px rgba(24, 94, 224, 0.35) !important;
+}}
+
+div[data-testid="stTextInput"] input {{
+    background-color: transparent !important;
+    background: transparent !important;
+    color: #FFFFFF !important;
+    caret-color: #FFFFFF !important;
+    border: none !important;
+    font-size: 0.95rem !important;
+    border-radius: 12px !important;
+}}
+
+div[data-testid="stTextInput"] input::placeholder {{
+    color: #9CA3AF !important;
+    opacity: 0.85 !important;
+}}
+
+.stTextArea textarea {{
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--input-border) !important;
+    color: var(--text-main) !important;
+    border-radius: 8px !important;
+}}
+
+/* 9. Bảng nguồn tham khảo (Evidence Panel) di chuyển cuộn dính cố định (Sticky) */
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {{
+    position: sticky !important;
+    top: 55px !important;
+    align-self: flex-start !important;
+    max-height: calc(100vh - 75px) !important;
+    overflow-y: auto !important;
+    padding-right: 6px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #2E3F5B transparent !important;
+}}
+
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar {{
+    width: 5px !important;
+}}
+
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar-track {{
+    background: transparent !important;
+}}
+
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar-thumb {{
+    background: #2E3F5B !important;
+    border-radius: 4px !important;
+}}
+
+.evidence-details {{
+    margin-top: 8px;
+    font-size: 0.8rem;
+}}
+
+.evidence-details summary {{
+    cursor: pointer;
+    color: var(--primary-blue);
+    font-weight: 600;
+    user-select: none;
+    outline: none;
+    margin-top: 4px;
+}}
+
+.evidence-details summary:hover {{
+    text-decoration: underline;
+}}
+
+.evidence-full-text {{
+    margin-top: 6px;
+    padding: 8px 10px;
+    background-color: var(--active-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-main);
+    white-space: pre-wrap;
+}}
 </style>
 """
 
 
-def apply_theme(mode: str = "light") -> None:
+def apply_theme(mode: str = "dark") -> None:
     """
-    Áp dụng CSS cho ứng dụng theo chế độ chỉ định.
+    Áp dụng CSS cho ứng dụng theo giao diện Tối (Dark Mode).
 
     Args:
-        mode: "light" (Mặc định) hoặc "dark".
+        mode: Mặc định "dark".
     """
-    css_content = get_theme_css(mode)
+    css_content = get_theme_css(mode="dark")
     st.markdown(css_content, unsafe_allow_html=True)

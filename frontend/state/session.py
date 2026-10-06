@@ -153,7 +153,7 @@ def init_session_state() -> None:
     4. Tải danh sách tin nhắn của hội thoại hiện tại (Pure DB read).
     """
     if "theme_mode" not in st.session_state:
-        st.session_state.theme_mode = "light"
+        st.session_state.theme_mode = "dark"
 
     if "view_mode" not in st.session_state:
         st.session_state.view_mode = "chat"
@@ -455,11 +455,8 @@ def add_message_to_current(
 
 
 def toggle_theme_mode() -> None:
-    """Chuyển đổi qua lại giữa chế độ Sáng (light) và Tối (dark)."""
-    if st.session_state.theme_mode == "light":
-        st.session_state.theme_mode = "dark"
-    else:
-        st.session_state.theme_mode = "light"
+    """Cố định chế độ tối (dark mode) mặc định cho toàn bộ ứng dụng."""
+    st.session_state.theme_mode = "dark"
 
 
 def set_active_citation(index: Optional[int]) -> None:

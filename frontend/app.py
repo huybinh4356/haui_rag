@@ -62,8 +62,8 @@ st.set_page_config(
 # 2. Khởi tạo trạng thái phiên làm việc từ PostgreSQL
 init_session_state()
 
-# 3. Áp dụng bảng màu và phong cách CSS theo theme được chọn (Sáng / Tối)
-apply_theme(mode=st.session_state.theme_mode)
+# 3. Áp dụng bảng màu và phong cách CSS giao diện Tối (Dark Mode) mặc định
+apply_theme(mode="dark")
 
 
 def check_backend_health() -> tuple[bool, dict[str, Any]]:
