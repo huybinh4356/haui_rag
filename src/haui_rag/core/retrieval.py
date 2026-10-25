@@ -257,8 +257,8 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
             if 1 <= index <= len(candidates) and 0 <= score <= 10:
                 score_map[index] = score
 
-        if not score_map:
-            raise ValueError("Mô hình local không trả điểm hợp lệ")
+        if len(score_map) != len(candidates):
+            raise ValueError("Mô hình local không chấm điểm đầy đủ mọi đoạn ứng viên")
 
         denominator = max(len(candidates) - 1, 1)
         for index, chunk in enumerate(candidates):
