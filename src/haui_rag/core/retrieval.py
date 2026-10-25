@@ -2,13 +2,26 @@
 
 import json
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from google.genai import types
 
-from haui_rag.config import DEFAULT_TOP_K, MAX_TOP_K, LLM_MODEL, USE_LLM_RERANK
+from haui_rag.config import (
+    DEFAULT_TOP_K,
+    MAX_TOP_K,
+    LLM_MODEL,
+    LLM_PROVIDER,
+    LOCAL_LLM_MODEL,
+    OLLAMA_NUM_CTX,
+    OLLAMA_NUM_GPU,
+    OLLAMA_TIMEOUT_SECONDS,
+    USE_LLM_RERANK,
+    USE_LOCAL_RERANK,
+)
 from haui_rag.core.embedding import get_embedding, get_genai_client
+from haui_rag.core.generation import call_ollama_generate
 from haui_rag.core.query_processor import expand_query
 from haui_rag.db.queries import keyword_search, search_similar_chunks
 from haui_rag.utils.helpers import format_citation
@@ -172,6 +185,82 @@ Chỉ trả về JSON, không thêm bất kỳ văn bản nào khác.
     return chunks[:top_k]
 
 
+def rerank_by_local_model(
+    query: str,
+    chunks: list[dict[str, Any]],
+    top_k: int = DEFAULT_TOP_K,
+) -> list[dict[str, Any]]:
+    if not chunks or len(chunks) <= 1:
+        return chunks[:top_k]
+
+    candidates = chunks[: min(len(chunks), 10)]
+    context_summaries = []
+    for index, chunk in enumerate(candidates, start=1):
+        citation = format_citation(chunk.get("metadata", {}))
+        snippet = chunk.get("content", "").replace("\\n", " ").strip()[:220]
+        context_summaries.append(f"[{index}] {citation}: {snippet}")
+
+    prompt = f"""Bạn đang xếp hạng các đoạn trích quy chế đại học để tìm nguồn trả lời câu hỏi.
+Chấm điểm từng đoạn từ 0 đến 10 theo mức độ trực tiếp hữu ích để trả lời câu hỏi.
+Ưu tiên nội dung nêu đúng chủ thể, quyền/nghĩa vụ, điều kiện hoặc quy định được hỏi. Không chấm cao chỉ vì đoạn có từ khóa chung.
+Không suy diễn nội dung không xuất hiện trong đoạn. Chỉ trả JSON, không giải thích.
+
+Câu hỏi: {query}
+
+Các đoạn:
+{chr(10).join(context_summaries)}
+
+Định dạng:
+{{"scores":[{{"index":1,"score":9}},{{"index":2,"score":3}}]}}
+Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
+"""
+
+    try:
+        response_text = call_ollama_generate(
+            prompt,
+            model=LOCAL_LLM_MODEL,
+            temperature=0.0,
+            timeout=min(60, OLLAMA_TIMEOUT_SECONDS),
+            num_ctx=min(2048, OLLAMA_NUM_CTX),
+            num_predict=180,
+            num_gpu=OLLAMA_NUM_GPU,
+        )
+        match = re.search(r"\\{.*\\}", response_text, flags=re.DOTALL)
+        if not match:
+            raise ValueError("Mô hình local không trả về JSON hợp lệ")
+
+        payload = json.loads(match.group(0))
+        score_map: dict[int, float] = {}
+        for item in payload.get("scores", []):
+            index = int(item.get("index", 0))
+            score = float(item.get("score", -1))
+            if 1 <= index <= len(candidates) and 0 <= score <= 10:
+                score_map[index] = score
+
+        if not score_map:
+            raise ValueError("Mô hình local không trả điểm hợp lệ")
+
+        denominator = max(len(candidates) - 1, 1)
+        for index, chunk in enumerate(candidates):
+            rank_score = 1.0 - index / denominator
+            local_score = score_map.get(index + 1, rank_score * 10) / 10.0
+            blended_score = 0.65 * local_score + 0.35 * rank_score
+            chunk["local_relevance_score"] = round(local_score * 10, 2)
+            chunk["rerank_score"] = round(blended_score * 10, 2)
+            chunk["_local_blended_score"] = blended_score
+
+        candidates.sort(key=lambda item: item.get("_local_blended_score", 0.0), reverse=True)
+        ranked = select_contexts_for_coverage(candidates, top_k=top_k)
+        for chunk in ranked:
+            chunk.pop("_local_blended_score", None)
+        logger.info("Local reranking bằng %s hoàn tất cho %d chunks", LOCAL_LLM_MODEL, len(candidates))
+        return ranked
+
+    except Exception as e:
+        logger.warning("Local reranking không thành công; dùng thứ tự RRF: %s", e)
+        return select_contexts_for_coverage(chunks, top_k=top_k)
+
+
 def retrieve_relevant_contexts(
     query: str,
     top_k: int = DEFAULT_TOP_K,
@@ -200,6 +289,8 @@ def retrieve_relevant_contexts(
 
     if USE_LLM_RERANK:
         final_contexts = rerank_by_llm(query, fused_chunks, top_k=top_k)
+    elif USE_LOCAL_RERANK and LLM_PROVIDER == "ollama":
+        final_contexts = rerank_by_local_model(query, fused_chunks, top_k=top_k)
     else:
         final_contexts = select_contexts_for_coverage(fused_chunks, top_k=top_k)
 
@@ -219,6 +310,7 @@ def retrieve_relevant_contexts(
                 "source_type": "database",
                 "rrf_score": c.get("rrf_score", 0.0),
                 "rerank_score": c.get("rerank_score", None),
+                "local_relevance_score": c.get("local_relevance_score", None),
                 "has_vector_match": c.get("has_vector_match", False),
                 "has_keyword_match": c.get("has_keyword_match", False),
                 "content": c.get("content", ""),
