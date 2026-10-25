@@ -106,6 +106,8 @@ DB_PASSWORD=mat_khau_postgres_cua_ban
 LLM_PROVIDER=ollama
 LOCAL_LLM_MODEL=qwen3.5:4b:rag
 OLLAMA_BASE_URL=http://localhost:11434
+USE_LOCAL_RERANK=true
+USE_LLM_RERANK=false
 
 # Thiet lap toi uu VRAM cho GPU 4GB (RTX 3050 Laptop)
 OLLAMA_NUM_CTX=3072
@@ -120,6 +122,8 @@ FALLBACK_LLM_MODEL=gemini-3.1-flash-lite
 BACKEND_HOST=127.0.0.1
 BACKEND_PORT=8000
 ```
+
+Khi `USE_LOCAL_RERANK=true` và `LLM_PROVIDER=ollama`, hệ thống dùng Qwen local để chấm điểm tối đa 10 đoạn ứng viên trước khi tạo câu trả lời. Đây là một lượt suy luận local bổ sung, không gọi Gemini để rerank. Nếu Ollama lỗi hoặc không trả đủ điểm hợp lệ, hệ thống quay lại thứ hạng RRF. Để tắt bước này, đặt `USE_LOCAL_RERANK=false`. Giữ `USE_LLM_RERANK=false` nếu không muốn dùng Gemini cho reranking. Việc tạo embedding truy vấn vẫn dùng cấu hình embedding hiện có.
 
 ---
 
