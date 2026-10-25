@@ -90,21 +90,49 @@ def select_contexts_for_coverage(
 ) -> list[dict[str, Any]]:
     if top_k <= 0:
         return []
-    if len(fused_chunks) <= top_k or top_k < 2:
-        return fused_chunks[:top_k]
+    if len(fused_chunks) <= top_k:
+        return list(fused_chunks)
 
     selected = list(fused_chunks[:top_k])
     selected_ids = {chunk["id"] for chunk in selected}
 
-    for match_flag in ("has_vector_match", "has_keyword_match"):
-        if any(chunk.get(match_flag, False) for chunk in selected):
+    requirements = [
+        (
+            "vector",
+            lambda chunk: chunk.get("has_vector_match", False),
+        ),
+        (
+            "keyword-only",
+            lambda chunk: chunk.get("has_keyword_match", False)
+            and not chunk.get("has_vector_match", False),
+        ),
+    ]
+
+    for _, predicate in requirements:
+        if any(predicate(chunk) for chunk in selected):
             continue
 
         replacement = next(
             (
                 chunk
                 for chunk in fused_chunks[top_k:]
-                if chunk["id"] not in selected_ids and chunk.get(match_flag, False)
+                if chunk["id"] not in selected_ids and predicate(chunk)
+            ),
+            None,
+        )
+
+        if replacement is not None:
+            removed = selected.pop()
+            selected_ids.remove(removed["id"])
+            selected.append(replacement)
+            selected_ids.add(replacement["id"])
+
+    if not any(chunk.get("has_keyword_match", False) for chunk in selected):
+        replacement = next(
+            (
+                chunk
+                for chunk in fused_chunks[top_k:]
+                if chunk["id"] not in selected_ids and chunk.get("has_keyword_match", False)
             ),
             None,
         )
@@ -117,7 +145,6 @@ def select_contexts_for_coverage(
     rank_by_id = {chunk["id"]: index for index, chunk in enumerate(fused_chunks)}
     selected.sort(key=lambda chunk: rank_by_id.get(chunk["id"], len(fused_chunks)))
     return selected
-
 
 def rerank_by_llm(
     query: str,
@@ -243,7 +270,7 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
             chunk["_local_blended_score"] = blended_score
 
         candidates.sort(key=lambda item: item.get("_local_blended_score", 0.0), reverse=True)
-        ranked = select_contexts_for_coverage(candidates, top_k=top_k)
+        ranked = candidates[:top_k]
         for chunk in ranked:
             chunk.pop("_local_blended_score", None)
         logger.info("Local reranking bằng %s hoàn tất cho %d chunks", LOCAL_LLM_MODEL, len(candidates))
@@ -280,10 +307,20 @@ def retrieve_relevant_contexts(
         k=60,
     )
 
+    rerank_candidate_count = min(
+        len(fused_chunks),
+        max(8, min(max(int(top_k), 1), MAX_TOP_K) * 2),
+        10,
+    )
+    rerank_candidates = select_contexts_for_coverage(
+        fused_chunks,
+        top_k=rerank_candidate_count,
+    )
+
     if USE_LLM_RERANK:
-        final_contexts = rerank_by_llm(query, fused_chunks, top_k=top_k)
+        final_contexts = rerank_by_llm(query, rerank_candidates, top_k=top_k)
     elif USE_LOCAL_RERANK and LLM_PROVIDER == "ollama":
-        final_contexts = rerank_by_local_model(query, fused_chunks, top_k=top_k)
+        final_contexts = rerank_by_local_model(query, rerank_candidates, top_k=top_k)
     else:
         final_contexts = select_contexts_for_coverage(fused_chunks, top_k=top_k)
 
