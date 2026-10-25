@@ -80,7 +80,7 @@ def keyword_search(
     stop_words = {
         "và", "của", "là", "các", "những", "cho", "được", "trong", "theo",
         "có", "từ", "một", "về", "với", "khi", "thì", "để", "hoặc", "này",
-        "đó", "như", "tại", "theo", "đến", "sinh", "viên", "người", "học",
+        "đó", "như", "tại", "đến",
     }
 
     conn = None
