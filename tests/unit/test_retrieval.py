@@ -1,7 +1,7 @@
 """Unit tests kiểm tra module retrieval (RRF và keyword search)."""
 
 import pytest
-from haui_rag.core.retrieval import reciprocal_rank_fusion
+from haui_rag.core.retrieval import reciprocal_rank_fusion, select_contexts_for_coverage
 from haui_rag.db.queries import keyword_search
 
 
@@ -50,6 +50,20 @@ def test_rrf_uses_multiple_keyword_queries():
     assert by_id[1]["has_vector_match"] is True
     assert by_id[3]["has_keyword_match"] is True
     assert by_id[3]["has_vector_match"] is False
+
+
+def test_context_selection_preserves_keyword_coverage():
+    candidates = [
+        {"id": 1, "has_vector_match": True, "has_keyword_match": False},
+        {"id": 2, "has_vector_match": True, "has_keyword_match": False},
+        {"id": 3, "has_vector_match": True, "has_keyword_match": False},
+        {"id": 4, "has_vector_match": False, "has_keyword_match": True},
+    ]
+
+    selected = select_contexts_for_coverage(candidates, top_k=3)
+
+    assert [item["id"] for item in selected] == [1, 2, 4]
+    assert any(item["has_keyword_match"] for item in selected)
 
 
 def test_keyword_search_returns_data():
