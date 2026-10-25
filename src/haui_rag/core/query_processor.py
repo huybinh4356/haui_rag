@@ -64,7 +64,18 @@ def expand_query(query: str) -> list[str]:
 
     if has_learner and has_obligation:
         learner_label = "sinh viên" if "sinh viên" in q_lower else "người học"
-        add_variant(f"quyền và nghĩa vụ của {learner_label}")
+        has_rights = "quyền" in q_lower or "quyền lợi" in q_lower
+
+        if has_rights:
+            add_variant(f"quyền và nghĩa vụ của {learner_label}")
+        elif "trách nhiệm" in q_lower and "nghĩa vụ" not in q_lower:
+            responsibility_variant = re.sub(r"trách nhiệm", "nghĩa vụ", clean_q, count=1, flags=re.IGNORECASE)
+            add_variant(responsibility_variant)
+        elif "nhiệm vụ" in q_lower and "trách nhiệm" not in q_lower:
+            duty_variant = re.sub(r"nhiệm vụ", "trách nhiệm", clean_q, count=1, flags=re.IGNORECASE)
+            add_variant(duty_variant)
+        else:
+            add_variant(f"nghĩa vụ của {learner_label}")
 
         if "sinh viên" in q_lower:
             learner_variant = re.sub(r"sinh viên", "người học", clean_q, flags=re.IGNORECASE)
