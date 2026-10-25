@@ -197,7 +197,7 @@ def rerank_by_local_model(
     context_summaries = []
     for index, chunk in enumerate(candidates, start=1):
         citation = format_citation(chunk.get("metadata", {}))
-        snippet = chunk.get("content", "").replace("\\n", " ").strip()[:220]
+        snippet = chunk.get("content", "").replace("\n", " ").strip()[:220]
         context_summaries.append(f"[{index}] {citation}: {snippet}")
 
     prompt = f"""Bạn đang xếp hạng các đoạn trích quy chế đại học để tìm nguồn trả lời câu hỏi.
@@ -225,7 +225,7 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
             num_predict=180,
             num_gpu=OLLAMA_NUM_GPU,
         )
-        match = re.search(r"\\{.*\\}", response_text, flags=re.DOTALL)
+        match = re.search(r"\{.*\}", response_text, flags=re.DOTALL)
         if not match:
             raise ValueError("Mô hình local không trả về JSON hợp lệ")
 
