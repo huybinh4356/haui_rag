@@ -110,3 +110,48 @@ def test_keyword_search_returns_data():
     if results:
         assert "content" in results[0]
         assert "rank_score" in results[0]
+
+
+def test_retrieval_embeds_once_for_multiple_query_variants(monkeypatch):
+    embedding_calls = []
+    keyword_calls = []
+
+    def fake_expand(query):
+        return [query, "biến thể hai", "biến thể ba"]
+
+    def fake_embedding(query, task_type):
+        embedding_calls.append((query, task_type))
+        return [0.0] * 3072
+
+    def fake_keyword_search(query, top_k):
+        keyword_calls.append(query)
+        chunk_id = {"Câu hỏi gốc": 1, "biến thể hai": 3, "biến thể ba": 4}[query]
+        return [{
+            "id": chunk_id,
+            "content": f"Đoạn {chunk_id}",
+            "metadata": {"ma_van_ban": "QD-A", "dieu": str(chunk_id)},
+            "rank_score": 1.0,
+        }]
+
+    def fake_vector_search(vector, top_k):
+        assert vector == [0.0] * 3072
+        return [
+            {"id": 1, "content": "Đoạn 1", "metadata": {"ma_van_ban": "QD-A", "dieu": "1"}, "distance": 0.1},
+            {"id": 2, "content": "Đoạn 2", "metadata": {"ma_van_ban": "QD-A", "dieu": "2"}, "distance": 0.2},
+        ]
+
+    monkeypatch.setattr(retrieval, "expand_query", fake_expand)
+    monkeypatch.setattr(retrieval, "get_embedding", fake_embedding)
+    monkeypatch.setattr(retrieval, "keyword_search", fake_keyword_search)
+    monkeypatch.setattr(retrieval, "search_similar_chunks", fake_vector_search)
+    monkeypatch.setattr(retrieval, "USE_LLM_RERANK", False)
+    monkeypatch.setattr(retrieval, "USE_LOCAL_RERANK", False)
+
+    contexts, sources = retrieval.retrieve_relevant_contexts("Câu hỏi gốc", top_k=2)
+
+    assert len(embedding_calls) == 1
+    assert embedding_calls[0][0] == "Câu hỏi gốc"
+    assert sorted(keyword_calls) == ["Câu hỏi gốc", "biến thể ba", "biến thể hai"]
+    assert len(contexts) == 2
+    assert len(sources) == 2
+    assert any(source["has_keyword_match"] for source in sources)
