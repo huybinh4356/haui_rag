@@ -285,9 +285,10 @@ def retrieve_relevant_contexts(
     query: str,
     top_k: int = DEFAULT_TOP_K,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    requested_top_k = max(1, min(int(top_k), MAX_TOP_K))
     expanded_queries = expand_query(query) or [query.strip()]
     primary_query = expanded_queries[0]
-    candidate_limit = min(max(int(top_k) * 2, int(top_k), 1), MAX_TOP_K)
+    candidate_limit = min(requested_top_k * 2, MAX_TOP_K)
 
     with ThreadPoolExecutor(max_workers=1 + len(expanded_queries)) as executor:
         fut_embed = executor.submit(get_embedding, primary_query, "RETRIEVAL_QUERY")
@@ -307,10 +308,11 @@ def retrieve_relevant_contexts(
         k=60,
     )
 
+    max_rerank_candidates = 8 if USE_LLM_RERANK else 10
     rerank_candidate_count = min(
         len(fused_chunks),
-        max(8, min(max(int(top_k), 1), MAX_TOP_K) * 2),
-        10,
+        max(8, requested_top_k * 2),
+        max_rerank_candidates,
     )
     rerank_candidates = select_contexts_for_coverage(
         fused_chunks,
@@ -318,11 +320,11 @@ def retrieve_relevant_contexts(
     )
 
     if USE_LLM_RERANK:
-        final_contexts = rerank_by_llm(query, rerank_candidates, top_k=top_k)
+        final_contexts = rerank_by_llm(query, rerank_candidates, top_k=requested_top_k)
     elif USE_LOCAL_RERANK and LLM_PROVIDER == "ollama":
-        final_contexts = rerank_by_local_model(query, rerank_candidates, top_k=top_k)
+        final_contexts = rerank_by_local_model(query, rerank_candidates, top_k=requested_top_k)
     else:
-        final_contexts = select_contexts_for_coverage(fused_chunks, top_k=top_k)
+        final_contexts = select_contexts_for_coverage(fused_chunks, top_k=requested_top_k)
 
     formatted_sources: list[dict[str, Any]] = []
     for c in final_contexts:
