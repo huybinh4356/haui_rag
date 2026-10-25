@@ -35,18 +35,28 @@ def reciprocal_rank_fusion(
         scores[cid] = scores.get(cid, 0.0) + (weight_vector / (k + rank))
 
     if keyword_result_lists is None:
-        effective_keyword_lists = [keyword_results] if keyword_results else []
+        merged_keyword_results = keyword_results
     else:
-        effective_keyword_lists = [items for items in keyword_result_lists if items]
+        keyword_query_scores: dict[int, float] = {}
+        keyword_chunks: dict[int, dict[str, Any]] = {}
+        for result_list in keyword_result_lists:
+            for rank, chunk in enumerate(result_list, start=1):
+                cid = chunk["id"]
+                keyword_chunks.setdefault(cid, chunk)
+                keyword_query_scores[cid] = keyword_query_scores.get(cid, 0.0) + (1.0 / (k + rank))
 
-    keyword_weight_per_list = weight_keyword / len(effective_keyword_lists) if effective_keyword_lists else 0.0
+        merged_ids = sorted(
+            keyword_query_scores,
+            key=lambda cid: keyword_query_scores[cid],
+            reverse=True,
+        )
+        merged_keyword_results = [keyword_chunks[cid] for cid in merged_ids]
 
-    for result_list in effective_keyword_lists:
-        for rank, chunk in enumerate(result_list, start=1):
-            cid = chunk["id"]
-            keyword_ids.add(cid)
-            chunks_map.setdefault(cid, chunk)
-            scores[cid] = scores.get(cid, 0.0) + (keyword_weight_per_list / (k + rank))
+    for rank, chunk in enumerate(merged_keyword_results, start=1):
+        cid = chunk["id"]
+        keyword_ids.add(cid)
+        chunks_map.setdefault(cid, chunk)
+        scores[cid] = scores.get(cid, 0.0) + (weight_keyword / (k + rank))
 
     sorted_cids = sorted(scores.keys(), key=lambda cid: scores[cid], reverse=True)
 
@@ -62,10 +72,45 @@ def reciprocal_rank_fusion(
         "RRF Fusion hợp nhất %d chunks (Vector: %d, Keyword queries: %d, Keyword results: %d)",
         len(fused_results),
         len(vector_results),
-        len(effective_keyword_lists),
+        len(keyword_result_lists) if keyword_result_lists is not None else int(bool(keyword_results)),
         len(keyword_ids),
     )
     return fused_results
+
+
+def select_contexts_for_coverage(
+    fused_chunks: list[dict[str, Any]],
+    top_k: int,
+) -> list[dict[str, Any]]:
+    if top_k <= 0:
+        return []
+    if len(fused_chunks) <= top_k or top_k < 2:
+        return fused_chunks[:top_k]
+
+    selected = list(fused_chunks[:top_k])
+    selected_ids = {chunk["id"] for chunk in selected}
+
+    for match_flag in ("has_vector_match", "has_keyword_match"):
+        if any(chunk.get(match_flag, False) for chunk in selected):
+            continue
+
+        replacement = next(
+            (
+                chunk
+                for chunk in fused_chunks[top_k:]
+                if chunk["id"] not in selected_ids and chunk.get(match_flag, False)
+            ),
+            None,
+        )
+        if replacement is not None:
+            removed = selected.pop()
+            selected_ids.remove(removed["id"])
+            selected.append(replacement)
+            selected_ids.add(replacement["id"])
+
+    rank_by_id = {chunk["id"]: index for index, chunk in enumerate(fused_chunks)}
+    selected.sort(key=lambda chunk: rank_by_id.get(chunk["id"], len(fused_chunks)))
+    return selected
 
 
 def rerank_by_llm(
@@ -156,7 +201,7 @@ def retrieve_relevant_contexts(
     if USE_LLM_RERANK:
         final_contexts = rerank_by_llm(query, fused_chunks, top_k=top_k)
     else:
-        final_contexts = fused_chunks[:top_k]
+        final_contexts = select_contexts_for_coverage(fused_chunks, top_k=top_k)
 
     formatted_sources: list[dict[str, Any]] = []
     for c in final_contexts:
