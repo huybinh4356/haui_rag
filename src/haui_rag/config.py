@@ -46,6 +46,7 @@ MAX_TOP_K: int = 10
 GENERATION_TEMPERATURE: float = 0.1
 EMBEDDING_DIMENSION: int = 3072
 USE_LLM_RERANK: bool = os.getenv("USE_LLM_RERANK", "false").lower() == "true"
+USE_LOCAL_RERANK: bool = os.getenv("USE_LOCAL_RERANK", "true").lower() == "true"
 ENABLE_QUERY_CACHE: bool = os.getenv("ENABLE_QUERY_CACHE", "true").lower() == "true"
 QUERY_CACHE_SIZE: int = int(os.getenv("QUERY_CACHE_SIZE", "128"))
 
