@@ -244,6 +244,11 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
             num_ctx=min(2048, OLLAMA_NUM_CTX),
             num_predict=180,
             num_gpu=OLLAMA_NUM_GPU,
+            system_prompt=(
+                "Bạn là bộ chấm điểm độ liên quan cho hệ thống RAG. "
+                "Chấm từng đoạn từ 0 đến 10 theo mức độ hữu ích trực tiếp để trả lời câu hỏi. "
+                "Không suy diễn nội dung ngoài đoạn trích. Chỉ trả JSON hợp lệ theo schema được yêu cầu."
+            ),
         )
         match = re.search(r"\{.*\}", response_text, flags=re.DOTALL)
         if not match:
