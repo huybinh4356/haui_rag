@@ -48,48 +48,41 @@ def reciprocal_rank_fusion(
         scores[cid] = scores.get(cid, 0.0) + (weight_vector / (k + rank))
 
     if keyword_result_lists is None:
-        merged_keyword_results = keyword_results
+        effective_keyword_lists = [keyword_results] if keyword_results else []
     else:
-        keyword_query_scores: dict[int, float] = {}
-        keyword_chunks: dict[int, dict[str, Any]] = {}
-        for result_list in keyword_result_lists:
-            for rank, chunk in enumerate(result_list, start=1):
-                cid = chunk["id"]
-                keyword_chunks.setdefault(cid, chunk)
-                keyword_query_scores[cid] = keyword_query_scores.get(cid, 0.0) + (1.0 / (k + rank))
+        effective_keyword_lists = [result_list for result_list in keyword_result_lists if result_list]
 
-        merged_ids = sorted(
-            keyword_query_scores,
-            key=lambda cid: keyword_query_scores[cid],
-            reverse=True,
-        )
-        merged_keyword_results = [keyword_chunks[cid] for cid in merged_ids]
+    keyword_weight_per_list = (
+        weight_keyword / len(effective_keyword_lists)
+        if effective_keyword_lists
+        else 0.0
+    )
 
-    for rank, chunk in enumerate(merged_keyword_results, start=1):
-        cid = chunk["id"]
-        keyword_ids.add(cid)
-        chunks_map.setdefault(cid, chunk)
-        scores[cid] = scores.get(cid, 0.0) + (weight_keyword / (k + rank))
+    for result_list in effective_keyword_lists:
+        for rank, chunk in enumerate(result_list, start=1):
+            cid = chunk["id"]
+            keyword_ids.add(cid)
+            chunks_map.setdefault(cid, chunk)
+            scores[cid] = scores.get(cid, 0.0) + (keyword_weight_per_list / (k + rank))
 
-    sorted_cids = sorted(scores.keys(), key=lambda cid: scores[cid], reverse=True)
+    sorted_cids = sorted(scores, key=lambda cid: scores[cid], reverse=True)
 
     fused_results: list[dict[str, Any]] = []
     for cid in sorted_cids:
         chunk = chunks_map[cid].copy()
-        chunk["rrf_score"] = round(scores[cid], 5)
+        chunk["rrf_score"] = round(scores[cid], 7)
         chunk["has_vector_match"] = cid in vector_ids
         chunk["has_keyword_match"] = cid in keyword_ids
         fused_results.append(chunk)
 
     logger.info(
-        "RRF Fusion hợp nhất %d chunks (Vector: %d, Keyword queries: %d, Keyword results: %d)",
+        "RRF Fusion hợp nhất %d chunks (Vector: %d, Keyword queries: %d, Keyword unique results: %d)",
         len(fused_results),
         len(vector_results),
-        len(keyword_result_lists) if keyword_result_lists is not None else int(bool(keyword_results)),
+        len(effective_keyword_lists),
         len(keyword_ids),
     )
     return fused_results
-
 
 def select_contexts_for_coverage(
     fused_chunks: list[dict[str, Any]],
