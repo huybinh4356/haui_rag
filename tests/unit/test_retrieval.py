@@ -125,7 +125,7 @@ def test_retrieval_embeds_once_for_multiple_query_variants(monkeypatch):
 
     def fake_keyword_search(query, top_k):
         keyword_calls.append(query)
-        chunk_id = {"Câu hỏi gốc": 1, "biến thể hai": 3, "biến thể ba": 4}[query]
+        chunk_id = {"Câu hỏi gốc": 5, "biến thể hai": 3, "biến thể ba": 4}[query]
         return [{
             "id": chunk_id,
             "content": f"Đoạn {chunk_id}",
@@ -155,3 +155,4 @@ def test_retrieval_embeds_once_for_multiple_query_variants(monkeypatch):
     assert len(contexts) == 2
     assert len(sources) == 2
     assert any(source["has_keyword_match"] for source in sources)
+    assert any(source["has_keyword_match"] and not source["has_vector_match"] for source in sources)
