@@ -52,6 +52,7 @@ def test_rrf_uses_multiple_keyword_queries():
 
     assert len(fused) == 3
     assert scores[2] > scores[3]
+    assert scores[2] == round((0.3 / 2) / 61 + (0.3 / 2) / 61, 7)
     assert by_id[1]["has_vector_match"] is True
     assert by_id[3]["has_keyword_match"] is True
     assert by_id[3]["has_vector_match"] is False
@@ -156,3 +157,14 @@ def test_retrieval_embeds_once_for_multiple_query_variants(monkeypatch):
     assert len(sources) == 2
     assert any(source["has_keyword_match"] for source in sources)
     assert any(source["has_keyword_match"] and not source["has_vector_match"] for source in sources)
+
+
+def test_single_context_keeps_highest_ranked_candidate():
+    candidates = [
+        {"id": 1, "has_vector_match": True, "has_keyword_match": False},
+        {"id": 2, "has_vector_match": False, "has_keyword_match": True},
+    ]
+
+    selected = select_contexts_for_coverage(candidates, top_k=1)
+
+    assert [item["id"] for item in selected] == [1]
