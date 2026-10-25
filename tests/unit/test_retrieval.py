@@ -1,7 +1,12 @@
 """Unit tests kiểm tra module retrieval (RRF và keyword search)."""
 
 import pytest
-from haui_rag.core.retrieval import reciprocal_rank_fusion, select_contexts_for_coverage
+import haui_rag.core.retrieval as retrieval
+from haui_rag.core.retrieval import (
+    reciprocal_rank_fusion,
+    select_contexts_for_coverage,
+    rerank_by_local_model,
+)
 from haui_rag.db.queries import keyword_search
 
 
@@ -64,6 +69,39 @@ def test_context_selection_preserves_keyword_coverage():
 
     assert [item["id"] for item in selected] == [1, 2, 4]
     assert any(item["has_keyword_match"] for item in selected)
+
+
+def test_local_reranker_scores_candidates_without_cloud_api(monkeypatch):
+    candidates = [
+        {"id": 1, "content": "Đoạn A", "metadata": {}, "has_vector_match": True, "has_keyword_match": False},
+        {"id": 2, "content": "Đoạn B", "metadata": {}, "has_vector_match": False, "has_keyword_match": True},
+        {"id": 3, "content": "Đoạn C", "metadata": {}, "has_vector_match": True, "has_keyword_match": False},
+    ]
+
+    def fake_generate(prompt, **kwargs):
+        assert "Câu hỏi:" in prompt
+        assert kwargs["temperature"] == 0.0
+        assert kwargs["num_predict"] == 180
+        return '{"scores":[{"index":1,"score":2},{"index":2,"score":9},{"index":3,"score":6}]}'
+
+    monkeypatch.setattr(retrieval, "call_ollama_generate", fake_generate)
+    ranked = rerank_by_local_model("Trách nhiệm sinh viên là gì?", candidates, top_k=2)
+
+    assert [item["id"] for item in ranked] == [2, 1]
+    assert ranked[0]["local_relevance_score"] == 9.0
+    assert "rerank_score" in ranked[0]
+
+
+def test_local_reranker_falls_back_when_model_output_is_invalid(monkeypatch):
+    candidates = [
+        {"id": 1, "content": "Đoạn A", "has_vector_match": True, "has_keyword_match": False},
+        {"id": 2, "content": "Đoạn B", "has_vector_match": False, "has_keyword_match": True},
+    ]
+
+    monkeypatch.setattr(retrieval, "call_ollama_generate", lambda *args, **kwargs: "not json")
+    ranked = rerank_by_local_model("Câu hỏi", candidates, top_k=2)
+
+    assert [item["id"] for item in ranked] == [1, 2]
 
 
 def test_keyword_search_returns_data():
