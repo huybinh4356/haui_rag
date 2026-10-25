@@ -175,9 +175,20 @@ def rag_query_stream(
     ]
     best_distance = min(vector_distances, default=1.0)
     has_keyword_match = any(source.get("has_keyword_match", False) for source in formatted_sources)
-    has_good_match = bool(
-        formatted_sources and (best_distance < 0.42 or has_keyword_match)
-    )
+    local_scores = [
+        float(source["local_relevance_score"])
+        for source in formatted_sources
+        if isinstance(source.get("local_relevance_score"), (int, float))
+    ]
+    if local_scores:
+        has_good_match = bool(
+            formatted_sources
+            and (best_distance < 0.42 or max(local_scores) >= 5.5)
+        )
+    else:
+        has_good_match = bool(
+            formatted_sources and (best_distance < 0.42 or has_keyword_match)
+        )
 
     if not has_good_match and q_type != "out_of_scope":
         logger.info("[Stream] Độ tương đồng thấp (best_dist=%.4f), thử Search Fallback...", best_distance)
