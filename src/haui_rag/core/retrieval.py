@@ -2,12 +2,12 @@
 
 import json
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
+
 from google.genai import types
 
-from haui_rag.config import DEFAULT_TOP_K, LLM_MODEL, USE_LLM_RERANK
+from haui_rag.config import DEFAULT_TOP_K, MAX_TOP_K, LLM_MODEL, USE_LLM_RERANK
 from haui_rag.core.embedding import get_embedding, get_genai_client
 from haui_rag.core.query_processor import expand_query
 from haui_rag.db.queries import keyword_search, search_similar_chunks
@@ -22,50 +22,49 @@ def reciprocal_rank_fusion(
     k: int = 60,
     weight_vector: float = 0.7,
     weight_keyword: float = 0.3,
+    keyword_result_lists: list[list[dict[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
-    """
-    Kết hợp kết quả tìm kiếm Vector và Keyword sử dụng thuật toán Reciprocal Rank Fusion (RRF).
-
-    Formula:
-        RRF_Score = weight_vector / (k + rank_vector) + weight_keyword / (k + rank_keyword)
-
-    Args:
-        vector_results: Danh sách kết quả từ vector search.
-        keyword_results: Danh sách kết quả từ keyword search.
-        k: Hằng số làm mượt rank (mặc định 60).
-        weight_vector: Trọng số vector search (0.7).
-        weight_keyword: Trọng số keyword search (0.3).
-
-    Returns:
-        list[dict]: Danh sách chunks hợp nhất và sắp xếp theo điểm RRF giảm dần.
-    """
     scores: dict[int, float] = {}
     chunks_map: dict[int, dict[str, Any]] = {}
+    vector_ids = {chunk["id"] for chunk in vector_results}
+    keyword_ids: set[int] = set()
 
-    # Chấm điểm từ Vector Search
     for rank, chunk in enumerate(vector_results, start=1):
         cid = chunk["id"]
         chunks_map[cid] = chunk
         scores[cid] = scores.get(cid, 0.0) + (weight_vector / (k + rank))
 
-    # Chấm điểm từ Keyword Search
-    for rank, chunk in enumerate(keyword_results, start=1):
-        cid = chunk["id"]
-        if cid not in chunks_map:
-            chunks_map[cid] = chunk
-        scores[cid] = scores.get(cid, 0.0) + (weight_keyword / (k + rank))
+    if keyword_result_lists is None:
+        effective_keyword_lists = [keyword_results] if keyword_results else []
+    else:
+        effective_keyword_lists = [items for items in keyword_result_lists if items]
 
-    # Sắp xếp kết quả theo RRF score
+    keyword_weight_per_list = weight_keyword / len(effective_keyword_lists) if effective_keyword_lists else 0.0
+
+    for result_list in effective_keyword_lists:
+        for rank, chunk in enumerate(result_list, start=1):
+            cid = chunk["id"]
+            keyword_ids.add(cid)
+            chunks_map.setdefault(cid, chunk)
+            scores[cid] = scores.get(cid, 0.0) + (keyword_weight_per_list / (k + rank))
+
     sorted_cids = sorted(scores.keys(), key=lambda cid: scores[cid], reverse=True)
 
     fused_results: list[dict[str, Any]] = []
     for cid in sorted_cids:
         chunk = chunks_map[cid].copy()
         chunk["rrf_score"] = round(scores[cid], 5)
+        chunk["has_vector_match"] = cid in vector_ids
+        chunk["has_keyword_match"] = cid in keyword_ids
         fused_results.append(chunk)
 
-    logger.info("RRF Fusion hợp nhất %d chunks (Vector: %d, Keyword: %d)",
-                len(fused_results), len(vector_results), len(keyword_results))
+    logger.info(
+        "RRF Fusion hợp nhất %d chunks (Vector: %d, Keyword queries: %d, Keyword results: %d)",
+        len(fused_results),
+        len(vector_results),
+        len(effective_keyword_lists),
+        len(keyword_ids),
+    )
     return fused_results
 
 
@@ -74,23 +73,10 @@ def rerank_by_llm(
     chunks: list[dict[str, Any]],
     top_k: int = DEFAULT_TOP_K,
 ) -> list[dict[str, Any]]:
-    """
-    Sử dụng LLM để chấm điểm lại (Reranking) mức độ liên quan ngữ nghĩa của từng chunk với câu hỏi.
-
-    Args:
-        query: Câu hỏi của người dùng.
-        chunks: Danh sách chunks ứng viên từ Hybrid search.
-        top_k: Số chunks tốt nhất cần giữ lại sau khi rerank.
-
-    Returns:
-        list[dict]: Danh sách top_k chunks đã được xếp hạng lại theo độ liên quan thực tế.
-    """
     if not chunks or len(chunks) <= 1:
         return chunks[:top_k]
 
     candidates = chunks[: min(len(chunks), 8)]
-
-    # Tạo tóm tắt ngữ cảnh cho batch reranking
     context_summaries = []
     for i, c in enumerate(candidates, start=1):
         citation = format_citation(c.get("metadata", {}))
@@ -128,11 +114,9 @@ Chỉ trả về JSON, không thêm bất kỳ văn bản nào khác.
                 sc = float(item.get("score", 0.0))
                 score_map[idx] = sc
 
-            # Gán điểm rerank cho candidates
             for i, c in enumerate(candidates, start=1):
                 c["rerank_score"] = score_map.get(i, c.get("rrf_score", 0.5))
 
-            # Sắp xếp theo rerank_score giảm dần
             candidates.sort(key=lambda x: x.get("rerank_score", 0.0), reverse=True)
             logger.info("Reranking bằng LLM hoàn tất thành công cho %d chunks", len(candidates))
             return candidates[:top_k]
@@ -147,57 +131,33 @@ def retrieve_relevant_contexts(
     query: str,
     top_k: int = DEFAULT_TOP_K,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """
-    Thực hiện quy trình Retrieval toàn diện:
-    1. Query Expansion (sinh biến thể câu hỏi)
-    2. Vector Search (Semantic)
-    3. Keyword Search (Full-Text)
-    4. RRF Fusion (kết hợp vector + keyword)
-    5. LLM Reranking (xếp hạng lại)
-
-    Args:
-        query: Câu hỏi của người dùng.
-        top_k: Số lượng chunks cuối cùng cần lấy.
-
-    Returns:
-        tuple[list[dict], list[dict]]: (raw_contexts cho Prompt, formatted_sources cho API)
-    """
-    # 1. Mở rộng câu hỏi
-    expanded_queries = expand_query(query)
+    expanded_queries = expand_query(query) or [query.strip()]
     primary_query = expanded_queries[0]
+    candidate_limit = min(max(int(top_k) * 2, int(top_k), 1), MAX_TOP_K)
 
-    # 2 & 3. Thực thi song song: Gọi Gemini Embedding và tìm kiếm Keyword trong PostgreSQL
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=1 + len(expanded_queries)) as executor:
         fut_embed = executor.submit(get_embedding, primary_query, "RETRIEVAL_QUERY")
-        fut_kw = executor.submit(keyword_search, primary_query, top_k * 2)
-
+        keyword_futures = [
+            executor.submit(keyword_search, expanded_query, candidate_limit)
+            for expanded_query in expanded_queries
+        ]
         query_vector = fut_embed.result()
-        keyword_results = fut_kw.result()
+        keyword_result_lists = [future.result() for future in keyword_futures]
 
-    vector_results = search_similar_chunks(query_vector, top_k=top_k * 2)
+    vector_results = search_similar_chunks(query_vector, top_k=candidate_limit)
 
-    # Nếu câu hỏi mở rộng có biến thể và keyword_results chưa đủ, tìm thêm
-    if len(expanded_queries) > 1 and len(keyword_results) < top_k:
-        extra_kw = keyword_search(expanded_queries[1], top_k=top_k)
-        seen_ids = {c["id"] for c in keyword_results}
-        for ek in extra_kw:
-            if ek["id"] not in seen_ids:
-                keyword_results.append(ek)
-
-    # 4. RRF Fusion
     fused_chunks = reciprocal_rank_fusion(
         vector_results=vector_results,
-        keyword_results=keyword_results,
+        keyword_results=[],
+        keyword_result_lists=keyword_result_lists,
         k=60,
     )
 
-    # 5. LLM Reranking (Nếu được kích hoạt, mặc định dùng RRF tốc độ cao tiết kiệm quota)
     if USE_LLM_RERANK:
         final_contexts = rerank_by_llm(query, fused_chunks, top_k=top_k)
     else:
         final_contexts = fused_chunks[:top_k]
 
-    # 6. Format sources cho response
     formatted_sources: list[dict[str, Any]] = []
     for c in final_contexts:
         meta = c.get("metadata", {})
@@ -214,6 +174,8 @@ def retrieve_relevant_contexts(
                 "source_type": "database",
                 "rrf_score": c.get("rrf_score", 0.0),
                 "rerank_score": c.get("rerank_score", None),
+                "has_vector_match": c.get("has_vector_match", False),
+                "has_keyword_match": c.get("has_keyword_match", False),
                 "content": c.get("content", ""),
             }
         )
