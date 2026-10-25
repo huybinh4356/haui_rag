@@ -83,6 +83,7 @@ def test_local_reranker_scores_candidates_without_cloud_api(monkeypatch):
         assert "Câu hỏi:" in prompt
         assert kwargs["temperature"] == 0.0
         assert kwargs["num_predict"] == 180
+        assert "chấm điểm độ liên quan" in kwargs["system_prompt"]
         return '{"scores":[{"index":1,"score":2},{"index":2,"score":9},{"index":3,"score":6}]}'
 
     monkeypatch.setattr(retrieval, "call_ollama_generate", fake_generate)
