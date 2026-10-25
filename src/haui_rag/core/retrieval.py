@@ -90,8 +90,8 @@ def select_contexts_for_coverage(
 ) -> list[dict[str, Any]]:
     if top_k <= 0:
         return []
-    if len(fused_chunks) <= top_k:
-        return list(fused_chunks)
+    if len(fused_chunks) <= top_k or top_k < 2:
+        return list(fused_chunks[:top_k])
 
     selected = list(fused_chunks[:top_k])
     selected_ids = {chunk["id"] for chunk in selected}
