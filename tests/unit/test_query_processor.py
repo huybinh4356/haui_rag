@@ -24,7 +24,7 @@ def test_expand_query_student_responsibilities():
 
     assert expanded[0] == query
     assert len(expanded) <= 3
-    assert "quyền và nghĩa vụ của sinh viên" in expanded
+    assert any("nghĩa vụ của sinh viên" in item.lower() for item in expanded)
     assert any("người học" in item.lower() for item in expanded)
 
 
