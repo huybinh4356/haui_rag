@@ -106,6 +106,91 @@ def test_local_reranker_falls_back_when_model_output_is_invalid(monkeypatch):
     assert [item["id"] for item in ranked] == [1, 2]
 
 
+
+def test_article_expansion_includes_sibling_clauses_and_preserves_seed_score(monkeypatch):
+    seed = {
+        "id": 7,
+        "content": "Điều 7. 1. Nội dung khoản một.",
+        "metadata": {"ten_file": "630.pdf", "ma_van_ban": "630/QĐ-ĐHCN", "dieu": "7", "khoan": "1"},
+        "distance": 0.12,
+        "has_vector_match": True,
+        "has_keyword_match": True,
+    }
+    related = [
+        {
+            "id": 9,
+            "content": "Điều 7. 3. Nội dung khoản ba.",
+            "metadata": {"ten_file": "630.pdf", "ma_van_ban": "630/QĐ-ĐHCN", "dieu": "7", "khoan": "3"},
+            "distance": None,
+            "context_expanded": True,
+        },
+        {
+            "id": 7,
+            "content": "Điều 7. 1. Nội dung khoản một.",
+            "metadata": {"ten_file": "630.pdf", "ma_van_ban": "630/QĐ-ĐHCN", "dieu": "7", "khoan": "1"},
+            "distance": None,
+            "context_expanded": True,
+        },
+        {
+            "id": 8,
+            "content": "Điều 7. 2. Nội dung khoản hai.",
+            "metadata": {"ten_file": "630.pdf", "ma_van_ban": "630/QĐ-ĐHCN", "dieu": "7", "khoan": "2"},
+            "distance": None,
+            "context_expanded": True,
+        },
+    ]
+    calls = []
+    monkeypatch.setattr(
+        retrieval,
+        "fetch_chunks_for_article",
+        lambda chunk, limit=40: calls.append((chunk["id"], limit)) or related,
+    )
+
+    expanded = retrieval.expand_contexts_by_article(
+        [seed],
+        max_articles=1,
+        max_context_chars=4000,
+        max_article_chars=3000,
+    )
+
+    assert [chunk["id"] for chunk in expanded] == [7, 8, 9]
+    assert expanded[0]["distance"] == 0.12
+    assert expanded[0]["context_expanded"] is False
+    assert expanded[1]["context_expanded"] is True
+    assert calls == [(7, 40)]
+
+
+def test_article_expansion_deduplicates_identical_content_within_same_article(monkeypatch):
+    seed = {
+        "id": 1,
+        "content": "Nội dung giống nhau",
+        "metadata": {"ten_file": "630.pdf", "dieu": "7", "khoan": "1"},
+        "distance": 0.1,
+    }
+    related = [
+        {"id": 1, "content": "Nội dung giống nhau", "metadata": {"ten_file": "630.pdf", "dieu": "7", "khoan": "1"}},
+        {"id": 2, "content": "  Nội dung   giống nhau  ", "metadata": {"ten_file": "630.pdf", "dieu": "7", "khoan": "2"}},
+    ]
+    monkeypatch.setattr(retrieval, "fetch_chunks_for_article", lambda chunk, limit=40: related)
+
+    expanded = retrieval.expand_contexts_by_article(
+        [seed],
+        max_articles=1,
+        max_context_chars=4000,
+        max_article_chars=3000,
+    )
+
+    assert len(expanded) == 1
+    assert expanded[0]["id"] == 1
+
+
+def test_article_identity_does_not_merge_same_article_number_across_documents():
+    first = {"id": 1, "metadata": {"ten_file": "630.pdf", "dieu": "7"}}
+    second = {"id": 2, "metadata": {"ten_file": "41.pdf", "dieu": "7"}}
+
+    assert retrieval._article_identity(first) != retrieval._article_identity(second)
+
+
 def test_keyword_search_returns_data():
     results = keyword_search("quy chế", top_k=2)
     assert isinstance(results, list)
