@@ -9,26 +9,14 @@ logger = logging.getLogger("haui_rag")
 
 
 def classify_query(query: str) -> str:
-    """
-    Phân loại câu hỏi thành các nhóm: factual, procedural, comparative, out_of_scope.
-
-    Args:
-        query: Câu hỏi của người dùng.
-
-    Returns:
-        str: Một trong các giá trị 'factual', 'procedural', 'comparative', 'out_of_scope'.
-    """
     q_lower = query.lower().strip()
 
-    # Rule-based heuristics nhanh trước khi gọi LLM
     if any(k in q_lower for k in ["thủ tục", "quy trình", "các bước", "làm thế nào", "hồ sơ gồm", "xin nghỉ"]):
         return "procedural"
     if any(k in q_lower for k in ["so sánh", "khác nhau", "giống nhau", "phân biệt", "hơn kém"]):
         return "comparative"
     if any(k in q_lower for k in ["vé máy bay", "thời tiết", "visa", "nấu ăn", "phim", "bóng đá", "lái xe b2"]):
         return "out_of_scope"
-
-    # Nhận diện câu hỏi sự thật, điều kiện, thời gian
     if any(k in q_lower for k in ["bao lâu", "bao nhiêu", "điều kiện", "chuẩn", "khi nào", "là gì", "được không"]):
         return "factual"
 
@@ -43,33 +31,69 @@ SYNONYM_MAP = {
     "học phí": ["mức thu học phí", "kinh phí đào tạo"],
     "luận văn": ["đề án tốt nghiệp", "luận văn thạc sĩ"],
     "cảnh báo": ["cảnh báo học tập", "buộc thôi học"],
+    "nhiệm vụ": ["nghĩa vụ", "bổn phận"],
+    "trách nhiệm": ["nghĩa vụ", "bổn phận"],
+    "nghĩa vụ": ["trách nhiệm", "bổn phận"],
+    "sinh viên": ["người học", "người học đại học"],
+    "người học": ["sinh viên", "người học đại học"],
+    "quyền lợi": ["quyền của sinh viên", "chế độ của sinh viên"],
+    "quy định": ["quy chế", "nội quy"],
+    "học tập": ["quá trình học tập", "hoạt động học tập"],
 }
 
 
 def expand_query(query: str) -> list[str]:
-    """
-    Mở rộng câu hỏi thành các biến thể ngữ nghĩa khác nhau để tối đa hóa
-    khả năng tìm thấy tài liệu liên quan trong vector & keyword search.
-    Sử dụng từ điển chuyên ngành kết hợp fallback thông minh, tiết kiệm quota API.
-
-    Args:
-        query: Câu hỏi gốc.
-
-    Returns:
-        list[str]: Danh sách gồm câu hỏi gốc và các biến thể sinh ra (tổng 2-3 câu).
-    """
     clean_q = query.strip()
-    q_lower = clean_q.lower()
-    results = [clean_q]
+    if not clean_q:
+        return []
 
-    # Mở rộng qua từ điển đồng nghĩa quy chế HaUI
-    for key, synonyms in SYNONYM_MAP.items():
-        if key in q_lower:
-            for syn in synonyms:
-                if syn not in q_lower:
-                    expanded = q_lower.replace(key, syn)
-                    if expanded not in results:
-                        results.append(expanded)
+    q_lower = clean_q.lower()
+    results: list[str] = []
+
+    def add_variant(value: str) -> None:
+        value = value.strip()
+        if value and value.casefold() not in {item.casefold() for item in results} and len(results) < 3:
+            results.append(value)
+
+    add_variant(clean_q)
+
+    learner_terms = ("sinh viên", "người học", "học viên")
+    obligation_terms = ("nhiệm vụ", "trách nhiệm", "nghĩa vụ", "bổn phận")
+    has_learner = any(term in q_lower for term in learner_terms)
+    has_obligation = any(term in q_lower for term in obligation_terms)
+
+    if has_learner and has_obligation:
+        learner_label = "sinh viên" if "sinh viên" in q_lower else "người học"
+        has_rights = "quyền" in q_lower or "quyền lợi" in q_lower
+
+        if has_rights:
+            add_variant(f"quyền và nghĩa vụ của {learner_label}")
+        elif "trách nhiệm" in q_lower and "nghĩa vụ" not in q_lower:
+            responsibility_variant = re.sub(r"trách nhiệm", "nghĩa vụ", clean_q, count=1, flags=re.IGNORECASE)
+            add_variant(responsibility_variant)
+        elif "nhiệm vụ" in q_lower and "trách nhiệm" not in q_lower:
+            duty_variant = re.sub(r"nhiệm vụ", "trách nhiệm", clean_q, count=1, flags=re.IGNORECASE)
+            add_variant(duty_variant)
+        else:
+            add_variant(f"nghĩa vụ của {learner_label}")
+
+        if "sinh viên" in q_lower:
+            learner_variant = re.sub(r"sinh viên", "người học", clean_q, flags=re.IGNORECASE)
+        else:
+            learner_variant = re.sub(r"(người học|học viên)", "sinh viên", clean_q, count=1, flags=re.IGNORECASE)
+        add_variant(learner_variant)
+
+    if len(results) < 3:
+        for key, synonyms in SYNONYM_MAP.items():
+            if key not in q_lower:
+                continue
+            for synonym in synonyms:
+                if synonym in q_lower:
+                    continue
+                expanded = re.sub(re.escape(key), synonym, clean_q, flags=re.IGNORECASE)
+                add_variant(expanded)
+                if len(results) >= 3:
+                    break
             if len(results) >= 3:
                 break
 
@@ -77,15 +101,6 @@ def expand_query(query: str) -> list[str]:
 
 
 def extract_entities(query: str) -> dict[str, Any]:
-    """
-    Trích xuất các thực thể hữu ích từ câu hỏi: số điều, số quyết định, bậc đào tạo.
-
-    Args:
-        query: Câu hỏi của người dùng.
-
-    Returns:
-        dict chứa: ma_van_ban, dieu, khoan, bac_dao_tao.
-    """
     entities: dict[str, Any] = {
         "ma_van_ban": None,
         "dieu": None,
@@ -95,7 +110,6 @@ def extract_entities(query: str) -> dict[str, Any]:
 
     q_lower = query.lower()
 
-    # Nhận diện bậc đào tạo
     if "thạc sĩ" in q_lower or "cao học" in q_lower:
         entities["bac_dao_tao"] = "thạc sĩ"
     elif "tiến sĩ" in q_lower or "ncs" in q_lower or "nghiên cứu sinh" in q_lower:
@@ -103,17 +117,14 @@ def extract_entities(query: str) -> dict[str, Any]:
     elif "đại học" in q_lower or "sinh viên" in q_lower:
         entities["bac_dao_tao"] = "đại học"
 
-    # Nhận diện số điều: "điều 5", "điều 12"
     dieu_match = re.search(r"điều\s+(\d+)", q_lower)
     if dieu_match:
         entities["dieu"] = dieu_match.group(1)
 
-    # Nhận diện số khoản: "khoản 2", "khoản 1"
     khoan_match = re.search(r"khoản\s+(\d+)", q_lower)
     if khoan_match:
         entities["khoan"] = khoan_match.group(1)
 
-    # Nhận diện mã quyết định: "quyết định 41", "quyết định số 630", "41/qđ", "qđ 721"
     qd_match = re.search(r"(?:quyết định(?:\s+số)?\s+|qđ\s+)(\d+)", q_lower)
     if qd_match:
         entities["ma_van_ban"] = qd_match.group(1)

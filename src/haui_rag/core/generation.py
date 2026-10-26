@@ -77,6 +77,7 @@ def call_ollama_generate(
     num_ctx: int = OLLAMA_NUM_CTX,
     num_predict: int = OLLAMA_NUM_PREDICT,
     num_gpu: int = OLLAMA_NUM_GPU,
+    system_prompt: str | None = None,
 ) -> str:
     """
     Gọi Ollama REST API cục bộ để sinh câu trả lời từ mô hình nội bộ.
@@ -103,7 +104,6 @@ def call_ollama_generate(
         "model": model,
         "prompt": prompt,
         "stream": False,
-        # Tắt thinking mode của Qwen3.x để trả về câu trả lời ngay, không qua chain-of-thought
         "think": False,
         "options": {
             "temperature": temperature,
@@ -112,6 +112,8 @@ def call_ollama_generate(
             "num_gpu": num_gpu,
         },
     }
+    if system_prompt is not None:
+        payload["system"] = system_prompt
 
     try:
         # connect timeout 1.5s, read timeout float(timeout)

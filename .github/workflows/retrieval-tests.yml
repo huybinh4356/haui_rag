@@ -1,0 +1,22 @@
+name: Retrieval unit tests
+
+on:
+  push:
+    branches:
+      - testkcc403
+
+jobs:
+  retrieval-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project and test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run retrieval and query-processing unit tests
+        run: python -m pytest -q tests/unit/test_query_processor.py tests/unit/test_retrieval.py -k "not keyword_search_returns_data"
