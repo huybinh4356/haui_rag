@@ -377,9 +377,6 @@ def expand_contexts_by_article(
             if chunk_id is not None and chunk_id in seen_ids:
                 continue
 
-            item_metadata = item.get("metadata")
-            if not isinstance(item_metadata, dict):
-                item_metadata = {}
             identity = _article_identity(item)
             content = str(item.get("content", "") or "")
             normalized_content = re.sub(r"\s+", " ", content).strip().casefold()
