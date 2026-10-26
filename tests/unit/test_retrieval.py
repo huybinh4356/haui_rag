@@ -231,6 +231,7 @@ def test_retrieval_embeds_once_for_multiple_query_variants(monkeypatch):
     monkeypatch.setattr(retrieval, "get_embedding", fake_embedding)
     monkeypatch.setattr(retrieval, "keyword_search", fake_keyword_search)
     monkeypatch.setattr(retrieval, "search_similar_chunks", fake_vector_search)
+    monkeypatch.setattr(retrieval, "fetch_chunks_for_article", lambda chunk, limit=40: [])
     monkeypatch.setattr(retrieval, "USE_LLM_RERANK", False)
     monkeypatch.setattr(retrieval, "USE_LOCAL_RERANK", False)
 
