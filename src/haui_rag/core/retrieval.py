@@ -23,7 +23,7 @@ from haui_rag.config import (
 from haui_rag.core.embedding import get_embedding, get_genai_client
 from haui_rag.core.generation import call_ollama_generate
 from haui_rag.core.query_processor import expand_query
-from haui_rag.db.queries import keyword_search, search_similar_chunks
+from haui_rag.db.queries import fetch_chunks_for_article, keyword_search, search_similar_chunks
 from haui_rag.utils.helpers import format_citation
 
 logger = logging.getLogger("haui_rag")
@@ -286,6 +286,170 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
         return select_contexts_for_coverage(chunks, top_k=top_k)
 
 
+
+def _article_identity(chunk: dict[str, Any]) -> tuple[str, str, str] | None:
+    metadata = chunk.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+
+    article_match = re.search(r"\\d+", str(metadata.get("dieu", "")).strip())
+    if not article_match:
+        return None
+
+    for field in ("ten_file", "ma_van_ban", "ten_van_ban"):
+        value = str(metadata.get(field, "") or "").strip()
+        if value and value.lower() not in {"none", "null", "n/a"}:
+            return field, value.casefold(), article_match.group(0)
+    return None
+
+
+def _article_sort_key(chunk: dict[str, Any]) -> tuple[int, int, int, int]:
+    metadata = chunk.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    clause = str(metadata.get("khoan", "") or "").strip().casefold()
+    sub_index = str(metadata.get("sub_index", "") or "").strip()
+    chunk_id = chunk.get("id")
+    numeric_clause = int(clause) if clause.isdigit() else 0
+    numeric_sub_index = int(sub_index) if sub_index.isdigit() else 0
+
+    if clause in {"mở đầu", "mo dau", ""}:
+        clause_group = 0
+    elif clause.isdigit():
+        clause_group = 1
+    else:
+        clause_group = 2
+
+    try:
+        numeric_id = int(chunk_id)
+    except (TypeError, ValueError):
+        numeric_id = 0
+
+    return clause_group, numeric_clause, numeric_sub_index, numeric_id
+
+
+def expand_contexts_by_article(
+    chunks: list[dict[str, Any]],
+    max_articles: int = 2,
+    max_context_chars: int = 7500,
+    max_article_chars: int = 5200,
+) -> list[dict[str, Any]]:
+    if not chunks:
+        return []
+
+    original_by_id = {
+        chunk.get("id"): chunk
+        for chunk in chunks
+        if chunk.get("id") is not None
+    }
+    expanded: list[dict[str, Any]] = []
+    seen_ids: set[Any] = set()
+    seen_content: set[tuple[tuple[Any, ...], str]] = set()
+    processed_articles: set[tuple[str, str, str]] = set()
+    expanded_article_count = 0
+    total_chars = 0
+    any_truncated = False
+
+    for seed in chunks:
+        article_key = _article_identity(seed)
+        article_chunks: list[dict[str, Any]] = [seed]
+        is_expanding = False
+
+        if (
+            article_key is not None
+            and article_key not in processed_articles
+            and expanded_article_count < max_articles
+        ):
+            processed_articles.add(article_key)
+            related = fetch_chunks_for_article(seed, limit=40)
+            if related:
+                article_chunks = list(related)
+                if not any(item.get("id") == seed.get("id") for item in article_chunks):
+                    article_chunks.append(seed)
+                article_chunks.sort(key=_article_sort_key)
+                is_expanding = True
+                expanded_article_count += 1
+
+        article_chars = 0
+        for item in article_chunks:
+            chunk_id = item.get("id")
+            if chunk_id is not None and chunk_id in seen_ids:
+                continue
+
+            item_metadata = item.get("metadata")
+            if not isinstance(item_metadata, dict):
+                item_metadata = {}
+            identity = _article_identity(item)
+            content = str(item.get("content", "") or "")
+            normalized_content = re.sub(r"\\s+", " ", content).strip().casefold()
+            content_scope: tuple[Any, ...] = identity if identity is not None else ("chunk", chunk_id)
+            content_key = (content_scope, normalized_content)
+
+            if normalized_content and content_key in seen_content:
+                if chunk_id is not None:
+                    seen_ids.add(chunk_id)
+                continue
+
+            if is_expanding and article_chars + len(content) > max_article_chars:
+                any_truncated = True
+                logger.warning(
+                    "Giới hạn độ dài khi mở rộng Điều %s; phần còn lại không được đưa vào ngữ cảnh",
+                    article_key[2] if article_key else "",
+                )
+                break
+
+            if total_chars + len(content) > max_context_chars:
+                any_truncated = True
+                logger.warning("Ngữ cảnh truy xuất đạt giới hạn %d ký tự", max_context_chars)
+                break
+
+            original = original_by_id.get(chunk_id)
+            merged = item.copy()
+            if original is not None:
+                merged.update(
+                    {
+                        key: original[key]
+                        for key in (
+                            "distance",
+                            "rrf_score",
+                            "rerank_score",
+                            "local_relevance_score",
+                            "has_vector_match",
+                            "has_keyword_match",
+                        )
+                        if key in original
+                    }
+                )
+                merged["context_expanded"] = False
+            else:
+                merged["context_expanded"] = bool(is_expanding)
+
+            expanded.append(merged)
+            if chunk_id is not None:
+                seen_ids.add(chunk_id)
+            if normalized_content:
+                seen_content.add(content_key)
+            total_chars += len(content)
+            if is_expanding:
+                article_chars += len(content)
+
+        if total_chars >= max_context_chars:
+            break
+
+    if any_truncated:
+        for chunk in expanded:
+            chunk["context_expansion_limited"] = True
+
+    logger.info(
+        "Mở rộng ngữ cảnh theo Điều: %d -> %d chunks, %d ký tự, bị giới hạn=%s",
+        len(chunks),
+        len(expanded),
+        total_chars,
+        any_truncated,
+    )
+    return expanded
+
 def retrieve_relevant_contexts(
     query: str,
     top_k: int = DEFAULT_TOP_K,
@@ -331,6 +495,10 @@ def retrieve_relevant_contexts(
     else:
         final_contexts = select_contexts_for_coverage(fused_chunks, top_k=requested_top_k)
 
+    initial_context_count = len(final_contexts)
+    final_contexts = expand_contexts_by_article(final_contexts)
+    logger.info("Context article expansion: %d -> %d chunks", initial_context_count, len(final_contexts))
+
     formatted_sources: list[dict[str, Any]] = []
     for c in final_contexts:
         meta = c.get("metadata", {})
@@ -343,13 +511,15 @@ def retrieve_relevant_contexts(
                 "ten_van_ban": meta.get("ten_van_ban", ""),
                 "dieu": meta.get("dieu", ""),
                 "khoan": meta.get("khoan", ""),
-                "distance": round(c.get("distance", 1.0), 4),
+                "distance": round(c["distance"], 4) if isinstance(c.get("distance"), (int, float)) else None,
                 "source_type": "database",
                 "rrf_score": c.get("rrf_score", 0.0),
                 "rerank_score": c.get("rerank_score", None),
                 "local_relevance_score": c.get("local_relevance_score", None),
                 "has_vector_match": c.get("has_vector_match", False),
                 "has_keyword_match": c.get("has_keyword_match", False),
+                "context_expanded": c.get("context_expanded", False),
+                "context_expansion_limited": c.get("context_expansion_limited", False),
                 "content": c.get("content", ""),
             }
         )
