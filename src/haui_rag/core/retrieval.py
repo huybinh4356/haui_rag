@@ -292,7 +292,7 @@ def _article_identity(chunk: dict[str, Any]) -> tuple[str, str, str] | None:
     if not isinstance(metadata, dict):
         return None
 
-    article_match = re.search(r"\\d+", str(metadata.get("dieu", "")).strip())
+    article_match = re.search(r"\d+", str(metadata.get("dieu", "")).strip())
     if not article_match:
         return None
 
@@ -382,7 +382,7 @@ def expand_contexts_by_article(
                 item_metadata = {}
             identity = _article_identity(item)
             content = str(item.get("content", "") or "")
-            normalized_content = re.sub(r"\\s+", " ", content).strip().casefold()
+            normalized_content = re.sub(r"\s+", " ", content).strip().casefold()
             content_scope: tuple[Any, ...] = identity if identity is not None else ("chunk", chunk_id)
             content_key = (content_scope, normalized_content)
 
