@@ -347,32 +347,83 @@ def expand_contexts_by_article(
     seen_ids: set[Any] = set()
     seen_content: set[tuple[tuple[Any, ...], str]] = set()
     processed_articles: set[tuple[str, str, str]] = set()
-    expanded_article_count = 0
+    article_chars: dict[tuple[str, str, str], int] = {}
     total_chars = 0
     any_truncated = False
 
+    def add_context_chunk(
+        item: dict[str, Any],
+        original: dict[str, Any] | None = None,
+        is_expanded: bool = False,
+    ) -> bool:
+        nonlocal total_chars, any_truncated
+
+        chunk_id = item.get("id")
+        if chunk_id is not None and chunk_id in seen_ids:
+            return True
+
+        identity = _article_identity(item)
+        content = str(item.get("content", "") or "")
+        normalized_content = re.sub(r"\s+", " ", content).strip().casefold()
+        content_scope: tuple[Any, ...] = identity if identity is not None else ("chunk", chunk_id)
+        content_key = (content_scope, normalized_content)
+
+        if normalized_content and content_key in seen_content:
+            if chunk_id is not None:
+                seen_ids.add(chunk_id)
+            return True
+
+        if total_chars + len(content) > max_context_chars:
+            any_truncated = True
+            logger.warning("Ngữ cảnh truy xuất đạt giới hạn %d ký tự", max_context_chars)
+            return False
+
+        merged = item.copy()
+        if original is not None:
+            for key in (
+                "distance",
+                "rrf_score",
+                "rerank_score",
+                "local_relevance_score",
+                "has_vector_match",
+                "has_keyword_match",
+            ):
+                if key in original:
+                    merged[key] = original[key]
+            merged["context_expanded"] = False
+        else:
+            merged["context_expanded"] = is_expanded
+            if is_expanded:
+                merged["distance"] = None
+
+        expanded.append(merged)
+        if chunk_id is not None:
+            seen_ids.add(chunk_id)
+        if normalized_content:
+            seen_content.add(content_key)
+        total_chars += len(content)
+        if identity is not None:
+            article_chars[identity] = article_chars.get(identity, 0) + len(content)
+        return True
+
+    for seed in chunks:
+        if not add_context_chunk(seed, original=seed, is_expanded=False):
+            break
+
     for seed in chunks:
         article_key = _article_identity(seed)
-        article_chunks: list[dict[str, Any]] = [seed]
-        is_expanding = False
+        if article_key is None or article_key in processed_articles:
+            continue
+        if len(processed_articles) >= max_articles:
+            break
 
-        if (
-            article_key is not None
-            and article_key not in processed_articles
-            and expanded_article_count < max_articles
-        ):
-            processed_articles.add(article_key)
-            related = fetch_chunks_for_article(seed, limit=40)
-            if related:
-                article_chunks = list(related)
-                if not any(item.get("id") == seed.get("id") for item in article_chunks):
-                    article_chunks.append(seed)
-                article_chunks.sort(key=_article_sort_key)
-                is_expanding = True
-                expanded_article_count += 1
+        processed_articles.add(article_key)
+        related = fetch_chunks_for_article(seed, limit=40)
+        if not related:
+            continue
 
-        article_chars = 0
-        for item in article_chunks:
+        related.sort(key=_article_sort_key)
+        for item in related:
             chunk_id = item.get("id")
             if chunk_id is not None and chunk_id in seen_ids:
                 continue
@@ -382,57 +433,22 @@ def expand_contexts_by_article(
             normalized_content = re.sub(r"\s+", " ", content).strip().casefold()
             content_scope: tuple[Any, ...] = identity if identity is not None else ("chunk", chunk_id)
             content_key = (content_scope, normalized_content)
-
             if normalized_content and content_key in seen_content:
                 if chunk_id is not None:
                     seen_ids.add(chunk_id)
                 continue
 
-            if is_expanding and article_chars + len(content) > max_article_chars:
+            current_article_chars = article_chars.get(article_key, 0)
+            if current_article_chars + len(content) > max_article_chars:
                 any_truncated = True
                 logger.warning(
                     "Giới hạn độ dài khi mở rộng Điều %s; phần còn lại không được đưa vào ngữ cảnh",
-                    article_key[2] if article_key else "",
+                    article_key[2],
                 )
                 break
 
-            if total_chars + len(content) > max_context_chars:
-                any_truncated = True
-                logger.warning("Ngữ cảnh truy xuất đạt giới hạn %d ký tự", max_context_chars)
+            if not add_context_chunk(item, original=original_by_id.get(chunk_id), is_expanded=True):
                 break
-
-            original = original_by_id.get(chunk_id)
-            merged = item.copy()
-            if original is not None:
-                merged.update(
-                    {
-                        key: original[key]
-                        for key in (
-                            "distance",
-                            "rrf_score",
-                            "rerank_score",
-                            "local_relevance_score",
-                            "has_vector_match",
-                            "has_keyword_match",
-                        )
-                        if key in original
-                    }
-                )
-                merged["context_expanded"] = False
-            else:
-                merged["context_expanded"] = bool(is_expanding)
-
-            expanded.append(merged)
-            if chunk_id is not None:
-                seen_ids.add(chunk_id)
-            if normalized_content:
-                seen_content.add(content_key)
-            total_chars += len(content)
-            if is_expanding:
-                article_chars += len(content)
-
-        if total_chars >= max_context_chars:
-            break
 
     if any_truncated:
         for chunk in expanded:
@@ -446,6 +462,7 @@ def expand_contexts_by_article(
         any_truncated,
     )
     return expanded
+
 
 def retrieve_relevant_contexts(
     query: str,
