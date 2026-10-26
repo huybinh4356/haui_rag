@@ -150,3 +150,95 @@ def keyword_search(
     finally:
         if conn is not None and not conn.closed:
             conn.close()
+
+
+def fetch_chunks_for_article(
+    seed_chunk: dict[str, Any],
+    limit: int = 40,
+) -> list[dict[str, Any]]:
+    metadata = seed_chunk.get("metadata")
+    if not isinstance(metadata, dict):
+        return []
+
+    raw_article = str(metadata.get("dieu", "")).strip()
+    article_match = re.search(r"\d+", raw_article)
+    if not article_match:
+        return []
+    article_number = article_match.group(0)
+
+    identity_fields = (
+        ("ten_file", "ten_file"),
+        ("ma_van_ban", "ma_van_ban"),
+        ("ten_van_ban", "ten_van_ban"),
+    )
+    identity_key = None
+    identity_value = None
+    for metadata_key, _ in identity_fields:
+        value = str(metadata.get(metadata_key, "") or "").strip()
+        if value and value.lower() not in {"none", "null", "n/a"}:
+            identity_key = metadata_key
+            identity_value = value
+            break
+
+    if not identity_key or not identity_value:
+        return []
+
+    identity_expression = f"COALESCE(metadata->>'{identity_key}', '')"
+    bounded_limit = max(1, min(int(limit), 40))
+    query_sql = f"""
+        SELECT id, content, metadata
+        FROM documents
+        WHERE regexp_replace(COALESCE(metadata->>'dieu', ''), '[^0-9]', '', 'g') = %s
+          AND {identity_expression} = %s
+        ORDER BY
+            CASE
+                WHEN lower(COALESCE(metadata->>'khoan', '')) IN ('mở đầu', 'mo dau') THEN 0
+                WHEN COALESCE(metadata->>'khoan', '') ~ '^\\d+$' THEN 1
+                ELSE 2
+            END,
+            CASE
+                WHEN COALESCE(metadata->>'khoan', '') ~ '^\\d+$'
+                THEN (metadata->>'khoan')::integer
+                ELSE 0
+            END,
+            CASE
+                WHEN COALESCE(metadata->>'sub_index', '') ~ '^\\d+$'
+                THEN (metadata->>'sub_index')::integer
+                ELSE 0
+            END,
+            id ASC
+        LIMIT %s;
+    """
+
+    conn = None
+    try:
+        conn = connect_db()
+        with conn.cursor() as cur:
+            cur.execute(query_sql, (article_number, identity_value, bounded_limit))
+            rows = cur.fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            results.append(
+                {
+                    "id": row[0],
+                    "content": row[1],
+                    "metadata": row[2] if isinstance(row[2], dict) else {},
+                    "distance": None,
+                    "context_expanded": True,
+                }
+            )
+        logger.info(
+            "Mở rộng ngữ cảnh Điều %s theo metadata: %d chunks, tài liệu %s=%s",
+            article_number,
+            len(results),
+            identity_key,
+            identity_value,
+        )
+        return results
+    except psycopg2.Error as e:
+        logger.warning("Không thể mở rộng ngữ cảnh theo Điều: %s", e)
+        return []
+    finally:
+        if conn is not None and not conn.closed:
+            conn.close()
+
