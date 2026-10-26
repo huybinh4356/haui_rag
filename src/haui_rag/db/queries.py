@@ -193,7 +193,7 @@ def fetch_chunks_for_article(
         ORDER BY
             CASE
                 WHEN lower(COALESCE(metadata->>'khoan', '')) IN ('mở đầu', 'mo dau') THEN 0
-                WHEN COALESCE(metadata->>'khoan', '') ~ '^\\d+$' THEN 1
+                WHEN COALESCE(metadata->>'khoan', '') ~ '^[0-9]+ THEN 1
                 ELSE 2
             END,
             CASE
@@ -203,6 +203,140 @@ def fetch_chunks_for_article(
             END,
             CASE
                 WHEN COALESCE(metadata->>'sub_index', '') ~ '^\\d+$'
+                THEN (metadata->>'sub_index')::integer
+                ELSE 0
+            END,
+            id ASC
+        LIMIT %s;
+    """
+
+    conn = None
+    try:
+        conn = connect_db()
+        with conn.cursor() as cur:
+            cur.execute(query_sql, (article_number, identity_value, bounded_limit))
+            rows = cur.fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            results.append(
+                {
+                    "id": row[0],
+                    "content": row[1],
+                    "metadata": row[2] if isinstance(row[2], dict) else {},
+                    "distance": None,
+                    "context_expanded": True,
+                }
+            )
+        logger.info(
+            "Mở rộng ngữ cảnh Điều %s theo metadata: %d chunks, tài liệu %s=%s",
+            article_number,
+            len(results),
+            identity_key,
+            identity_value,
+        )
+        return results
+    except psycopg2.Error as e:
+        logger.warning("Không thể mở rộng ngữ cảnh theo Điều: %s", e)
+        return []
+    finally:
+        if conn is not None and not conn.closed:
+            conn.close()
+
+ THEN 1
+                ELSE 2
+            END,
+            CASE
+                WHEN COALESCE(metadata->>'khoan', '') ~ '^[0-9]+
+                THEN (metadata->>'khoan')::integer
+                ELSE 0
+            END,
+            CASE
+                WHEN COALESCE(metadata->>'sub_index', '') ~ '^\\d+$'
+                THEN (metadata->>'sub_index')::integer
+                ELSE 0
+            END,
+            id ASC
+        LIMIT %s;
+    """
+
+    conn = None
+    try:
+        conn = connect_db()
+        with conn.cursor() as cur:
+            cur.execute(query_sql, (article_number, identity_value, bounded_limit))
+            rows = cur.fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            results.append(
+                {
+                    "id": row[0],
+                    "content": row[1],
+                    "metadata": row[2] if isinstance(row[2], dict) else {},
+                    "distance": None,
+                    "context_expanded": True,
+                }
+            )
+        logger.info(
+            "Mở rộng ngữ cảnh Điều %s theo metadata: %d chunks, tài liệu %s=%s",
+            article_number,
+            len(results),
+            identity_key,
+            identity_value,
+        )
+        return results
+    except psycopg2.Error as e:
+        logger.warning("Không thể mở rộng ngữ cảnh theo Điều: %s", e)
+        return []
+    finally:
+        if conn is not None and not conn.closed:
+            conn.close()
+
+
+                THEN (metadata->>'khoan')::integer
+                ELSE 0
+            END,
+            CASE
+                WHEN COALESCE(metadata->>'sub_index', '') ~ '^[0-9]+
+                THEN (metadata->>'sub_index')::integer
+                ELSE 0
+            END,
+            id ASC
+        LIMIT %s;
+    """
+
+    conn = None
+    try:
+        conn = connect_db()
+        with conn.cursor() as cur:
+            cur.execute(query_sql, (article_number, identity_value, bounded_limit))
+            rows = cur.fetchall()
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            results.append(
+                {
+                    "id": row[0],
+                    "content": row[1],
+                    "metadata": row[2] if isinstance(row[2], dict) else {},
+                    "distance": None,
+                    "context_expanded": True,
+                }
+            )
+        logger.info(
+            "Mở rộng ngữ cảnh Điều %s theo metadata: %d chunks, tài liệu %s=%s",
+            article_number,
+            len(results),
+            identity_key,
+            identity_value,
+        )
+        return results
+    except psycopg2.Error as e:
+        logger.warning("Không thể mở rộng ngữ cảnh theo Điều: %s", e)
+        return []
+    finally:
+        if conn is not None and not conn.closed:
+            conn.close()
+
+
                 THEN (metadata->>'sub_index')::integer
                 ELSE 0
             END,
