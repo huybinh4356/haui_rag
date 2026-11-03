@@ -21,7 +21,7 @@ Kiểm tra trạng thái hoạt động của Backend và cơ sở dữ liệu P
   "database": "connected",
   "total_documents": 1714,
   "embedding_model": "gemini-embedding-001",
-  "llm_model": "gemini-3.8-flash"
+  "llm_model": "gemini-2.0-flash"
 }
 ```
 
@@ -47,7 +47,7 @@ Tra cứu các văn bản quy chế HaUI và sinh câu trả lời có trích d�
 
 ```json
 {
-  "answer": "Điều kiện tốt nghiệp trình độ thạc sĩ bao gồm...\n\n📚 Nguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 7, Khoản 1",
+  "answer": "Điều kiện tốt nghiệp trình độ thạc sĩ bao gồm...\n\nNguồn tham khảo:\n- [630/QĐ-ĐHCN] - Điều 7, Khoản 1",
   "sources": [
     {
       "chunk_id": 12,

@@ -37,7 +37,13 @@ def send_feedback_to_backend(payload: dict[str, Any]) -> bool:
         return True
 
 
-def render_feedback_section(msg_idx: int, question: str, answer: str, response_time_ms: int) -> None:
+def render_feedback_section(
+    msg_idx: int,
+    question: str,
+    answer: str,
+    response_time_ms: int,
+    message_id: str | None = None,
+) -> None:
     """
     Hiển thị khu vực đánh giá câu trả lời của trợ lý.
 
@@ -46,8 +52,10 @@ def render_feedback_section(msg_idx: int, question: str, answer: str, response_t
         question: Câu hỏi tương ứng.
         answer: Câu trả lời đã hiển thị.
         response_time_ms: Thời gian xử lý.
+        message_id: UUID tin nhắn trợ lý trong cơ sở dữ liệu (nếu có).
     """
-    feedback_key = f"fb_{msg_idx}"
+    key_suffix = str(message_id) if message_id else str(msg_idx)
+    feedback_key = f"fb_{key_suffix}"
     current_status = st.session_state.feedback_status.get(feedback_key)
 
     if current_status == "submitted":
@@ -58,8 +66,9 @@ def render_feedback_section(msg_idx: int, question: str, answer: str, response_t
 
     col1, col2, _ = st.columns([1.2, 1.5, 6])
     with col1:
-        if st.button("Hữu ích", key=f"btn_pos_{msg_idx}", type="secondary"):
+        if st.button("Hữu ích", key=f"btn_pos_{key_suffix}", type="secondary"):
             payload = {
+                "message_id": message_id,
                 "question": question,
                 "answer": answer,
                 "rating": "helpful",
@@ -71,7 +80,7 @@ def render_feedback_section(msg_idx: int, question: str, answer: str, response_t
             st.rerun()
 
     with col2:
-        if st.button("Cần cải thiện", key=f"btn_neg_{msg_idx}", type="secondary"):
+        if st.button("Cần cải thiện", key=f"btn_neg_{key_suffix}", type="secondary"):
             st.session_state.feedback_status[feedback_key] = "selecting_reason"
             st.rerun()
 
@@ -81,17 +90,18 @@ def render_feedback_section(msg_idx: int, question: str, answer: str, response_t
             selected_reason = st.selectbox(
                 "Vui lòng cho biết lý do chưa hài lòng:",
                 options=FEEDBACK_REASONS,
-                key=f"reason_{msg_idx}",
+                key=f"reason_{key_suffix}",
             )
             more_comment = st.text_input(
                 "Ý kiến bổ sung (không bắt buộc):",
-                key=f"cmt_{msg_idx}",
+                key=f"cmt_{key_suffix}",
                 placeholder="Ghi chú thêm về điều khoản hoặc quy định cần bổ sung...",
             )
             col_sub, col_cancel = st.columns([1.5, 1.5])
             with col_sub:
-                if st.button("Gửi đánh giá", key=f"send_fb_{msg_idx}", type="primary"):
+                if st.button("Gửi đánh giá", key=f"send_fb_{key_suffix}", type="primary"):
                     payload = {
+                        "message_id": message_id,
                         "question": question,
                         "answer": answer,
                         "rating": "unhelpful",
@@ -104,6 +114,6 @@ def render_feedback_section(msg_idx: int, question: str, answer: str, response_t
                     st.toast("Cảm ơn bạn đã góp ý chi tiết.")
                     st.rerun()
             with col_cancel:
-                if st.button("Hủy", key=f"cancel_fb_{msg_idx}"):
+                if st.button("Hủy", key=f"cancel_fb_{key_suffix}"):
                     st.session_state.feedback_status[feedback_key] = None
                     st.rerun()

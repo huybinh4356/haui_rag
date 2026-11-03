@@ -3,7 +3,13 @@ name: Retrieval unit tests
 on:
   push:
     branches:
+      - main
+      - master
       - testkcc403
+  pull_request:
+    branches:
+      - main
+      - master
 
 jobs:
   retrieval-tests:

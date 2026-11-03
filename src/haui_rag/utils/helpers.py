@@ -7,6 +7,146 @@ import unicodedata
 
 logger = logging.getLogger("haui_rag")
 
+# Danh mục ánh xạ tên file PDF trong DB sang metadata chuẩn hóa (READ-ONLY enrichment)
+DOCUMENT_CATALOG: list[tuple[str, dict[str, str]]] = [
+    (
+        "quyết định 41",
+        {
+            "ma_van_ban": "41/QĐ-ĐHCN",
+            "ten_van_ban": "Quy chế tuyển sinh và đào tạo trình độ thạc sĩ (QĐ 41)",
+            "bac_dao_tao": "thạc sĩ",
+        },
+    ),
+    (
+        "quy định 630",
+        {
+            "ma_van_ban": "630/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định đào tạo trình độ thạc sĩ (QĐ 630)",
+            "bac_dao_tao": "thạc sĩ",
+        },
+    ),
+    (
+        "qđ 139",
+        {
+            "ma_van_ban": "139/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định công tác quản lý lớp học trình độ thạc sĩ (QĐ 139)",
+            "bac_dao_tao": "thạc sĩ",
+        },
+    ),
+    (
+        "qđ154",
+        {
+            "ma_van_ban": "154/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định tổ chức đánh giá học phần sau đại học (QĐ 154)",
+            "bac_dao_tao": "thạc sĩ, tiến sĩ",
+        },
+    ),
+    (
+        "qđ508",
+        {
+            "ma_van_ban": "508/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định mở ngành đào tạo trình độ thạc sĩ và tiến sĩ (QĐ 508)",
+            "bac_dao_tao": "thạc sĩ, tiến sĩ",
+        },
+    ),
+    (
+        "quyet-dinh-721",
+        {
+            "ma_van_ban": "721/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định tổ chức đánh giá kết quả học tập của người học (QĐ 721)",
+            "bac_dao_tao": "chung",
+        },
+    ),
+    (
+        "qd dao tao tien si",
+        {
+            "ma_van_ban": "QĐ-ĐTTS-2018",
+            "ten_van_ban": "Quy định đào tạo trình độ tiến sĩ",
+            "bac_dao_tao": "tiến sĩ",
+        },
+    ),
+    (
+        "1202",
+        {
+            "ma_van_ban": "1202/QĐ-ĐHCN",
+            "ten_van_ban": "Quy chế tuyển sinh và đào tạo trình độ tiến sĩ (QĐ 1202)",
+            "bac_dao_tao": "tiến sĩ",
+        },
+    ),
+    (
+        "sửa đổi bổ sung quy chế đào tạo trình độ tiến sĩ",
+        {
+            "ma_van_ban": "1202/QĐ-ĐHCN",
+            "ten_van_ban": "Quyết định sửa đổi bổ sung Quy chế đào tạo trình độ tiến sĩ",
+            "bac_dao_tao": "tiến sĩ",
+        },
+    ),
+    (
+        "943.pdf",
+        {
+            "ma_van_ban": "943/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định xét cấp học bổng khuyến khích học tập cao học và NCS (QĐ 943)",
+            "bac_dao_tao": "thạc sĩ, tiến sĩ",
+        },
+    ),
+    (
+        "29675",
+        {
+            "ma_van_ban": "QĐ-CĐRNN",
+            "ten_van_ban": "Quy định chuẩn đầu ra ngoại ngữ tại ĐHCN",
+            "bac_dao_tao": "chung",
+        },
+    ),
+    (
+        "29811",
+        {
+            "ma_van_ban": "744/QĐ-ĐHCN",
+            "ten_van_ban": "Quy định đào tạo trình độ đại học theo hệ thống tín chỉ",
+            "bac_dao_tao": "đại học",
+        },
+    ),
+    (
+        "29868",
+        {
+            "ma_van_ban": "QĐ-ĐATN",
+            "ten_van_ban": "Quy định thực hiện đồ án, khóa luận tốt nghiệp đại học",
+            "bac_dao_tao": "đại học",
+        },
+    ),
+]
+
+
+def enrich_chunk_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Làm giàu metadata của chunk dựa trên tên file PDF trong DB mà không cần sửa DB.
+
+    Args:
+        metadata: Dict metadata gốc từ bảng documents.
+
+    Returns:
+        Dict metadata đã được bổ sung ma_van_ban, ten_van_ban và bac_dao_tao.
+    """
+    if not isinstance(metadata, dict):
+        return {}
+
+    enriched = dict(metadata)
+    ten_file = str(enriched.get("ten_file") or "").strip().lower()
+    if not ten_file:
+        return enriched
+
+    for pattern, info in DOCUMENT_CATALOG:
+        if pattern in ten_file:
+            if not (enriched.get("ma_van_ban") or "").strip():
+                enriched["ma_van_ban"] = info["ma_van_ban"]
+            if not (enriched.get("ten_van_ban") or "").strip():
+                enriched["ten_van_ban"] = info["ten_van_ban"]
+            if not (enriched.get("bac_dao_tao") or "").strip():
+                enriched["bac_dao_tao"] = info["bac_dao_tao"]
+            break
+
+    return enriched
+
+
 DANGEROUS_PATTERNS: list[str] = [
     "ignore previous instructions",
     "ignore all previous",
@@ -61,13 +201,14 @@ def format_citation(metadata: dict[str, Any]) -> str:
     if not isinstance(metadata, dict):
         return "Quy chế HaUI"
 
-    ma_van_ban = (metadata.get("ma_van_ban") or "").strip()
+    enriched = enrich_chunk_metadata(metadata)
+    ma_van_ban = (enriched.get("ma_van_ban") or "").strip()
     if not ma_van_ban:
-        ten_file = metadata.get("ten_file", "").replace(".pdf", "").strip()
-        ma_van_ban = ten_file if ten_file else metadata.get("ten_van_ban", "Quy chế HaUI")
+        ten_file = str(enriched.get("ten_file") or "").replace(".pdf", "").strip()
+        ma_van_ban = ten_file if ten_file else str(enriched.get("ten_van_ban") or "Quy chế HaUI")
 
-    dieu = metadata.get("dieu")
-    khoan = metadata.get("khoan")
+    dieu = enriched.get("dieu")
+    khoan = enriched.get("khoan")
 
     citation_parts = [f"[{ma_van_ban}]"]
 
@@ -89,7 +230,7 @@ def verify_citations_against_sources(
 ) -> dict[str, Any]:
     """
     Xác thực tính trung thực của các trích dẫn mà LLM sinh ra đối với các chunks lấy từ DB.
-    Kiểm tra xem mã văn bản LLM nêu có thực sự nằm trong danh sách ngữ cảnh đã cấp.
+    Kiểm tra xem mã văn bản hoặc tên văn bản LLM nêu có thực sự nằm trong ngữ cảnh đã cấp.
 
     Args:
         answer: Câu trả lời văn bản từ LLM.
@@ -106,28 +247,37 @@ def verify_citations_against_sources(
             "verification_score": 1.0,
         }
 
-    # Trích xuất các mã văn bản có trong sources
     known_docs: set[str] = set()
     for s in sources:
-        mvb = s.get("ma_van_ban") or ""
-        if mvb:
-            clean_mvb = re.sub(r"[^\w\d]", "", mvb.lower())
-            if clean_mvb:
-                known_docs.add(clean_mvb)
+        meta = enrich_chunk_metadata(s.get("metadata") if isinstance(s.get("metadata"), dict) else s)
+        candidates = [
+            s.get("ma_van_ban"),
+            s.get("ten_van_ban"),
+            s.get("citation"),
+            meta.get("ma_van_ban"),
+            meta.get("ten_van_ban"),
+            str(meta.get("ten_file") or "").replace(".pdf", ""),
+        ]
+        for candidate in candidates:
+            if candidate:
+                clean_cand = re.sub(r"[^\w\d]", "", str(candidate).lower())
+                if clean_cand:
+                    known_docs.add(clean_cand)
 
-    # Tìm các pattern trích dẫn dạng [Mã văn bản] trong câu trả lời
-    found_citations = re.findall(r"\[([A-Za-z0-9\/\-\.]+)\]", answer)
+    found_citations = re.findall(r"\[([^\[\]\n]{2,90})\]", answer)
 
     verified: list[str] = []
     unverified: list[str] = []
 
     for doc_code in found_citations:
-        clean_code = re.sub(r"[^\w\d]", "", doc_code.lower())
+        raw_lower = doc_code.strip().lower()
+        if raw_lower.startswith("đoạn ") or raw_lower in ("mã văn bản", "web", "web haui"):
+            continue
+        clean_code = re.sub(r"[^\w\d]", "", raw_lower)
         if not clean_code or clean_code in ("web", "webhaui"):
             continue
 
-        cite_label = f"[{doc_code}]"
-        # Kiểm tra xem mã văn bản có nằm trong các chunk DB không
+        cite_label = f"[{doc_code.strip()}]"
         if any(clean_code in kd or kd in clean_code for kd in known_docs):
             if cite_label not in verified:
                 verified.append(cite_label)

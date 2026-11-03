@@ -1,18 +1,18 @@
 # --- Core Runtime Dependencies ---
-google-genai==2.25.0
-psycopg2-binary==2.9.13
-pgvector==0.5.0
-python-dotenv==1.2.3
-fastapi==0.141.1
-uvicorn[standard]==0.54.0
-pydantic==2.13.5
-streamlit==1.64.0
-requests==2.34.2
+google-genai>=1.0.0
+psycopg2-binary>=2.9.9
+pgvector>=0.3.6
+python-dotenv>=1.0.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+streamlit>=1.38.0
+requests>=2.32.0
 numpy==1.26.4
 
 # --- Testing & Quality Assurance ---
-pytest==9.1.1
-pytest-cov==7.1.0
+pytest>=8.3.0
+pytest-cov>=5.0.0
 
 # --- Data Ingestion & OCR Preprocessing (Scripts) ---
 # pdfplumber>=0.11.0

@@ -115,8 +115,8 @@ OLLAMA_NUM_PREDICT=1024
 OLLAMA_NUM_GPU=999
 
 # Model Gemini Cloud (dung khi LLM_PROVIDER=gemini hoac fallback)
-LLM_MODEL=gemini-3.6-flash
-FALLBACK_LLM_MODEL=gemini-3.1-flash-lite
+LLM_MODEL=gemini-2.0-flash
+FALLBACK_LLM_MODEL=gemini-2.0-flash-lite
 
 # Backend Server
 BACKEND_HOST=127.0.0.1

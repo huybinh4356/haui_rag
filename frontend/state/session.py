@@ -32,9 +32,7 @@ logger = logging.getLogger("haui_rag.frontend.session")
 BASE_API_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}"
 
 
-# =========================================================================
-# HELPER GIAO TIẾP VỚI BACKEND API / DIRECT DATABASE FALLBACK
-# =========================================================================
+# Helper giao tiếp với Backend API / Direct Database Fallback
 
 
 def _is_backend_available() -> bool:
@@ -139,9 +137,7 @@ def api_delete_conversation(conversation_id: str) -> bool:
     return db_delete_conversation(conversation_id)
 
 
-# =========================================================================
-# KHỞI TẠO VÀ ĐIỀU HƯỚNG TRẠNG THÁI STREAMLIT SESSION
-# =========================================================================
+# Khởi tạo và điều hướng trạng thái Streamlit Session
 
 
 def init_session_state() -> None:
@@ -178,6 +174,9 @@ def init_session_state() -> None:
 
     if "pending_question" not in st.session_state:
         st.session_state.pending_question = None
+
+    if "chat_layout_mode" not in st.session_state:
+        st.session_state.chat_layout_mode = "bottom"
 
     # 1. Nạp danh sách hội thoại từ PostgreSQL
     if "conversations" not in st.session_state:
@@ -402,14 +401,16 @@ def add_message_to_current(
 
     req_id = f"req_{datetime.now().strftime('%H%M%S')}"
 
+    saved_msg_id: Optional[str] = None
     if role == "user":
         try:
-            db_save_user_message(conversation_id=cid, content=content, request_id=req_id)
+            saved_user = db_save_user_message(conversation_id=cid, content=content, request_id=req_id)
+            saved_msg_id = saved_user.get("id")
         except Exception as e:
             logger.warning("Không thể lưu user message vào DB trong add_message_to_current: %s", e)
     else:
         try:
-            db_save_assistant_message(
+            saved_ast = db_save_assistant_message(
                 conversation_id=cid,
                 content=content,
                 request_id=req_id,
@@ -419,6 +420,7 @@ def add_message_to_current(
                 citations=sources or [],
                 metadata={"citation_audit": citation_audit, "error": error},
             )
+            saved_msg_id = saved_ast.get("id")
         except Exception as e:
             logger.warning("Không thể lưu assistant message vào DB trong add_message_to_current: %s", e)
 
@@ -427,6 +429,7 @@ def add_message_to_current(
         st.session_state.messages = []
 
     msg_obj = {
+        "id": saved_msg_id,
         "role": role,
         "content": content,
         "sources": sources or [],
@@ -464,9 +467,7 @@ def set_active_citation(index: Optional[int]) -> None:
     st.session_state.active_citation_index = index
 
 
-# =========================================================================
-# HELPER PHÂN NHÓM VÀ HIỂN THỊ THỜI GIAN
-# =========================================================================
+# Helper phân nhóm và hiển thị thời gian
 
 
 def group_conversations_by_date(

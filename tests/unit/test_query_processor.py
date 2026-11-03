@@ -1,7 +1,12 @@
 """Unit tests kiểm tra module xử lý câu hỏi (Query Processor)."""
 
 import pytest
-from haui_rag.core.query_processor import classify_query, expand_query, extract_entities
+from haui_rag.core.query_processor import (
+    classify_query,
+    expand_query,
+    extract_entities,
+    extract_search_phrases,
+)
 
 
 def test_classify_query_types():
@@ -37,3 +42,10 @@ def test_extract_entities_accuracy():
     assert res["dieu"] == "15"
     assert res["ma_van_ban"] == "41"
     assert res["bac_dao_tao"] == "thạc sĩ"
+
+
+def test_extract_search_phrases_includes_concept_and_ocr_variants():
+    phrases = extract_search_phrases("Điều kiện công nhận tốt nghiệp và cấp bằng thạc sĩ?")
+    assert "nhận tốt nghiệp" in phrases
+    assert "tốtnghiệp" in phrases
+    assert "cấp bằng thạc sĩ" in phrases

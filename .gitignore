@@ -4,9 +4,14 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+src/*.egg-info/
+build/
+dist/
 
-# Data
+# Data & Documents
 *.pdf
+*.docx
 data/ocr_cache/
 data/logs/
 data/output_json/

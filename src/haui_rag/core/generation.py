@@ -26,6 +26,9 @@ from haui_rag.utils.helpers import format_citation
 
 logger = logging.getLogger("haui_rag")
 
+_ollama_unavailable_until: float = 0.0
+_OLLAMA_BACKOFF_SECONDS: float = 60.0
+
 
 def build_prompt(query: str, contexts: list[dict[str, Any]]) -> str:
     """

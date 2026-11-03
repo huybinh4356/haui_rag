@@ -24,7 +24,7 @@ Dự án được xây dựng theo nguyên lý Clean Architecture, phân tách r
 (core/retrieval.py)      (db/queries.py)        (core/generation.py)
          │                     │                        │
          ▼                     ▼                        ▼
-[Embedding Service]   [PostgreSQL + pgvector]   [Gemini 3.8 Flash]
+[Embedding Service]   [PostgreSQL + pgvector]   [Gemini 2.0 Flash]
 (core/embedding.py)   (HNSW halfvec index)      (Temperature 0.1)
 ```
 
@@ -34,7 +34,7 @@ Dự án được xây dựng theo nguyên lý Clean Architecture, phân tách r
 
 - `embedding.py`: Kết nối SDK `google-genai` tạo vector 3072 chiều (`gemini-embedding-001`, `task_type="RETRIEVAL_QUERY"`).
 - `retrieval.py`: Nhận vector và lấy top chunks từ database, format metadata.
-- `generation.py`: Ghép context vào template chống bịa, gọi LLM `gemini-3.8-flash` với cơ chế retry exponential backoff.
+- `generation.py`: Ghép context vào template chống bịa, gọi LLM `gemini-2.0-flash` với cơ chế retry exponential backoff.
 - `rag_pipeline.py`: Orchestrator điều phối toàn bộ luồng, kiểm tra prompt injection, đo latency.
 
 ### 2.2. Tầng Database (`haui_rag.db`)

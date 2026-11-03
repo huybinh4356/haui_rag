@@ -74,15 +74,15 @@ DARK_THEME = {
 
 def get_theme_css(mode: str = "dark") -> str:
     """
-    Sinh chuỗi CSS định dạng hoàn chỉnh theo giao diện Tối (Dark Mode) mặc định.
+    Sinh chuỗi CSS định dạng hoàn chỉnh theo chế độ Sáng/Tối.
 
     Args:
-        mode: Mặc định "dark".
+        mode: Chế độ hiển thị ("dark" hoặc "light").
 
     Returns:
         str: Chuỗi HTML <style> áp dụng lên ứng dụng.
     """
-    t = DARK_THEME
+    t = LIGHT_THEME if mode == "light" else DARK_THEME
 
     return f"""
 <style>
@@ -110,18 +110,35 @@ def get_theme_css(mode: str = "dark") -> str:
     --input-border: {t["input_border"]};
 }}
 
-/* Ghi đè toàn bộ nền ứng dụng Streamlit */
+/* Ghi đè toàn bộ nền ứng dụng Streamlit và cố định khung nhìn 100vh không bị trượt toàn trang */
 html, body, .stApp, [data-testid="stAppViewContainer"] {{
     background-color: var(--bg-page) !important;
     color: var(--text-main) !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+}}
+
+[data-testid="stMain"] {{
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+}}
+
+.block-container, [data-testid="stMainBlockContainer"] {{
+    padding-top: 1.4rem !important;
+    padding-bottom: 0.5rem !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
 }}
 
 /* Ẩn bớt các thanh header mặc định của Streamlit */
 #MainMenu {{visibility: hidden;}}
 footer {{visibility: hidden;}}
 header[data-testid="stHeader"] {{
-    background-color: var(--bg-page) !important;
+    background-color: transparent !important;
+    height: 2rem !important;
 }}
 
 /* Khung Sidebar */
@@ -611,29 +628,45 @@ div[data-testid="stTextInput"] input::placeholder {{
     border-radius: 8px !important;
 }}
 
-/* 9. Bảng nguồn tham khảo (Evidence Panel) di chuyển cuộn dính cố định (Sticky) */
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {{
-    position: sticky !important;
-    top: 55px !important;
-    align-self: flex-start !important;
-    max-height: calc(100vh - 75px) !important;
+/* 9. Bảng nguồn tham khảo (Evidence Panel) và các khung cuộn độc lập cố định */
+.st-key-evidence_scroll_box {{
+    height: calc(100vh - 125px) !important;
+    max-height: calc(100vh - 125px) !important;
+    min-height: 450px !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
     padding-right: 6px !important;
+    padding-bottom: 18px !important;
     scrollbar-width: thin !important;
     scrollbar-color: #2E3F5B transparent !important;
 }}
 
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar {{
+.st-key-evidence_scroll_box::-webkit-scrollbar {{
     width: 5px !important;
 }}
 
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar-track {{
+.st-key-evidence_scroll_box::-webkit-scrollbar-track {{
     background: transparent !important;
 }}
 
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-webkit-scrollbar-thumb {{
+.st-key-evidence_scroll_box::-webkit-scrollbar-thumb {{
     background: #2E3F5B !important;
     border-radius: 4px !important;
+}}
+
+.st-key-settings_scroll_box,
+.st-key-about_scroll_box,
+.st-key-empty_state_box {{
+    height: calc(100vh - 120px) !important;
+    max-height: calc(100vh - 120px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    padding-right: 8px !important;
+    padding-bottom: 24px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #2E3F5B transparent !important;
 }}
 
 .evidence-details {{
@@ -665,16 +698,140 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2)::-
     color: var(--text-main);
     white-space: pre-wrap;
 }}
+
+/* 10. Khung cuộn tin nhắn hội thoại tự động đẩy lên trên (Chuẩn AI) */
+.st-key-chat_messages_box {{
+    height: calc(100vh - 205px) !important;
+    max-height: calc(100vh - 205px) !important;
+    min-height: 400px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    padding-right: 8px !important;
+    padding-bottom: 16px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #2E3F5B transparent !important;
+}}
+
+.st-key-chat_messages_box::-webkit-scrollbar {{
+    width: 6px !important;
+}}
+
+.st-key-chat_messages_box::-webkit-scrollbar-track {{
+    background: transparent !important;
+}}
+
+.st-key-chat_messages_box::-webkit-scrollbar-thumb {{
+    background: #2E3F5B !important;
+    border-radius: 4px !important;
+}}
+
+/* Ẩn hoàn toàn iframe chạy script auto-scroll */
+div[data-testid="stCustomComponentV1"]:has(iframe[height="0"]),
+div[data-testid="stCustomComponentV1"] iframe[height="0"] {{
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+
+/* 11. Bảng điểm Đánh giá Dự án & Thành phần (Evaluation Scorecard) */
+.eval-hero-card {{
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--active-bg) 100%);
+    border: 1px solid var(--active-border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}}
+
+.eval-grade-badge {{
+    min-width: 92px;
+    height: 92px;
+    border-radius: 16px;
+    background-color: var(--primary-blue);
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}}
+
+.eval-grade-number {{
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+}}
+
+.eval-grade-label {{
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.9;
+    margin-top: 2px;
+}}
+
+.eval-comp-card {{
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}}
+
+.eval-comp-header {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}}
+
+.eval-comp-title {{
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-main);
+}}
+
+.eval-comp-score {{
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #10B981;
+}}
+
+.eval-bar-bg {{
+    width: 100%;
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 6px 0 8px 0;
+}}
+
+.eval-bar-fill {{
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-blue) 0%, #10B981 100%);
+    border-radius: 999px;
+}}
+
+.eval-comp-desc {{
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}}
 </style>
 """
 
 
 def apply_theme(mode: str = "dark") -> None:
     """
-    Áp dụng CSS cho ứng dụng theo giao diện Tối (Dark Mode).
+    Áp dụng CSS cho ứng dụng theo chế độ Sáng/Tối.
 
     Args:
         mode: Mặc định "dark".
     """
-    css_content = get_theme_css(mode="dark")
+    css_content = get_theme_css(mode=mode)
     st.markdown(css_content, unsafe_allow_html=True)

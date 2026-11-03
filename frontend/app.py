@@ -256,28 +256,60 @@ render_sidebar()
 
 # 3. Phân nhánh giao diện theo chế độ xem (View Mode)
 if st.session_state.view_mode == "settings":
-    render_settings_view(health_data)
+    settings_box = st.container(
+        key="settings_scroll_box",
+        height=720,
+        border=False,
+    )
+    with settings_box:
+        render_settings_view(health_data)
 elif st.session_state.view_mode == "about":
-    render_about_view()
+    about_box = st.container(
+        key="about_scroll_box",
+        height=720,
+        border=False,
+    )
+    with about_box:
+        render_about_view()
 else:
-    # 4. Bố cục 3 cột chính thức trên Desktop (Left Nav đã nằm ở Sidebar)
-    # Khu vực chính phân chia 2 cột: Main Chat (7) và Evidence Panel (5)
+    # 4. Bố cục 3 cột cố định trên Desktop (Left Nav ở Sidebar, Main Chat và Evidence Panel có khung cuộn độc lập)
     messages = st.session_state.get("messages", [])
 
     col_chat, col_evidence = st.columns([7, 5], gap="large")
 
     with col_chat:
         if not messages:
-            # Trạng thái rỗng chuẩn thiết kế với ô tìm kiếm trung tâm và 4 gợi ý câu hỏi
-            render_empty_state(on_submit=handle_user_query)
+            empty_box = st.container(
+                key="empty_state_box",
+                height=680,
+                border=False,
+            )
+            with empty_box:
+                render_empty_state(on_submit=handle_user_query)
         else:
-            # Hiển thị toàn bộ lịch sử tin nhắn lưu trữ từ PostgreSQL
-            render_chat_history(messages)
-            # Thanh nhập câu hỏi cố định ở chân trang khi đang trò chuyện
-            render_composer(handle_user_query)
+            layout_mode = st.session_state.get("chat_layout_mode", "bottom")
+            if layout_mode == "top":
+                render_composer(handle_user_query)
+                chat_box = st.container(
+                    key="chat_messages_box",
+                    height=600,
+                    border=False,
+                    autoscroll=False,
+                )
+                with chat_box:
+                    render_chat_history(messages)
+            else:
+                chat_box = st.container(
+                    key="chat_messages_box",
+                    height=600,
+                    border=False,
+                    autoscroll=True,
+                )
+                with chat_box:
+                    render_chat_history(messages)
+                render_composer(handle_user_query)
 
     with col_evidence:
-        # Lấy danh sách nguồn trích dẫn từ tin nhắn phản hồi gần nhất của trợ lý
         assistant_msgs = [m for m in messages if m.get("role") == "assistant"]
         latest_sources = []
         latest_audit = None
@@ -286,8 +318,14 @@ else:
             latest_sources = last_m.get("sources") or last_m.get("citations") or []
             latest_audit = last_m.get("citation_audit") or (last_m.get("metadata") or {}).get("citation_audit")
 
-        render_evidence_panel(
-            sources=latest_sources,
-            active_idx=st.session_state.active_citation_index,
-            citation_audit=latest_audit,
+        evidence_box = st.container(
+            key="evidence_scroll_box",
+            height=680,
+            border=False,
         )
+        with evidence_box:
+            render_evidence_panel(
+                sources=latest_sources,
+                active_idx=st.session_state.active_citation_index,
+                citation_audit=latest_audit,
+            )

@@ -295,6 +295,8 @@ def send_message_endpoint(
     rag_result: dict[str, Any] = {}
     try:
         rag_result = rag_query(query=content, top_k=req.top_k or 5)
+        if rag_result.get("error"):
+            rag_error = str(rag_result["error"])
     except Exception as e:
         rag_error = str(e)
         logger.error(

@@ -1,8 +1,9 @@
 """Component hiển thị dòng hội thoại, định dạng Markdown học thuật và trích dẫn tương tác."""
 
-import re
+import html
 from typing import Any
 import streamlit as st
+import streamlit.components.v1 as components
 
 from frontend.components.feedback import render_feedback_section
 from frontend.styles.theme import get_logo_base64
@@ -31,12 +32,13 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
         fallback_used = msg.get("fallback_used", False)
 
         if role == "user":
-            # Tin nhắn của người dùng: Nhỏ gọn, căn phải, nền Slate nhẹ nhàng
+            # Tin nhắn của người dùng: Nhỏ gọn, căn phải, nền Slate nhẹ nhàng (escape chống XSS)
+            safe_user_content = html.escape(str(content)).replace("\n", "<br/>")
             st.markdown(
                 f"""
                 <div class="message-bubble-user">
                     <div class="message-role-label">Bạn</div>
-                    <div>{content}</div>
+                    <div>{safe_user_content}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -83,6 +85,35 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
                 question=user_question,
                 answer=content,
                 response_time_ms=resp_time,
+                message_id=msg.get("id"),
             )
 
-            st.markdown("<hr style='border: none; border-top: 1px solid #F1F5F9; margin: 20px 0;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='border: none; border-top: 1px solid var(--border-color); margin: 20px 0;'>", unsafe_allow_html=True)
+
+    # Thẻ neo điểm cuối cuộc hội thoại và kịch bản tự cuộn xuống đáy (đẩy lịch sử lên trên)
+    st.markdown('<div id="chat-end-anchor" style="height: 1px;"></div>', unsafe_allow_html=True)
+    components.html(
+        """
+        <script>
+            function scrollToBottom() {
+                try {
+                    const doc = window.parent.document;
+                    const anchor = doc.getElementById('chat-end-anchor');
+                    if (anchor) {
+                        anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        return;
+                    }
+                    const chatBox = doc.querySelector('.st-key-chat_messages_box');
+                    if (chatBox) {
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                } catch (e) {}
+            }
+            scrollToBottom();
+            setTimeout(scrollToBottom, 60);
+            setTimeout(scrollToBottom, 220);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )

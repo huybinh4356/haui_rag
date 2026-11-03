@@ -81,6 +81,42 @@ def search_fallback(query: str, top_k: int = 3) -> list[dict[str, Any]]:
     return results[:top_k]
 
 
+def build_fallback_prompt(query: str, fallback_results: list[dict[str, Any]]) -> str:
+    """
+    Xây dựng prompt cho LLM từ danh sách kết quả tìm kiếm trên cổng thông tin HaUI.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        fallback_results: Danh sách kết quả tìm kiếm ngoài website HaUI.
+
+    Returns:
+        Prompt hoàn chỉnh chứa thông tin từ website HaUI.
+    """
+    context_parts = []
+    for idx, res in enumerate(fallback_results, start=1):
+        context_parts.append(
+            f"[{idx}] {res.get('title')} ({res.get('link')}):\n{res.get('snippet')}"
+        )
+
+    context_str = "\n\n".join(context_parts)
+
+    return f"""Bạn là trợ lý AI của Trường Đại học Công nghiệp Hà Nội.
+Câu hỏi của người dùng không có trong cơ sở dữ liệu quy chế nội bộ đã nạp, nhưng tìm thấy thông tin công khai từ cổng thông tin website của trường (haui.edu.vn) dưới đây:
+
+THÔNG TIN TỪ WEBSITE:
+{context_str}
+
+CÂU HỎI:
+{query}
+
+HƯỚNG DẪN TRẢ LỜI:
+1. Thông báo rõ: "Thông tin này không nằm trong tập quy chế đào tạo nội bộ, nhưng theo thông tin tra cứu từ Cổng thông tin Trường Đại học Công nghiệp Hà Nội (haui.edu.vn):"
+2. Tóm tắt nội dung chính xác từ kết quả tìm kiếm.
+3. Cuối câu trả lời, dẫn link tham khảo đến website HaUI.
+
+TRẢ LỜI:"""
+
+
 def generate_from_fallback(query: str, fallback_results: list[dict[str, Any]]) -> str:
     """
     Sinh câu trả lời từ các kết quả tìm kiếm trên cổng thông tin HaUI.
@@ -98,29 +134,7 @@ def generate_from_fallback(query: str, fallback_results: list[dict[str, Any]]) -
             "Bạn vui lòng tra cứu thêm tại Cổng thông tin trường: https://www.haui.edu.vn"
         )
 
-    context_parts = []
-    for idx, res in enumerate(fallback_results, start=1):
-        context_parts.append(
-            f"[{idx}] {res.get('title')} ({res.get('link')}):\n{res.get('snippet')}"
-        )
-
-    context_str = "\n\n".join(context_parts)
-
-    prompt = f"""Bạn là trợ lý AI của Trường Đại học Công nghiệp Hà Nội.
-Câu hỏi của người dùng không có trong cơ sở dữ liệu quy chế nội bộ đã nạp, nhưng tìm thấy thông tin công khai từ cổng thông tin website của trường (haui.edu.vn) dưới đây:
-
-THÔNG TIN TỪ WEBSITE:
-{context_str}
-
-CÂU HỎI:
-{query}
-
-HƯỚNG DẪN TRẢ LỜI:
-1. Thông báo rõ: "Thông tin này không nằm trong tập quy chế đào tạo nội bộ, nhưng theo thông tin tra cứu từ Cổng thông tin Trường Đại học Công nghiệp Hà Nội (haui.edu.vn):"
-2. Tóm tắt nội dung chính xác từ kết quả tìm kiếm.
-3. Cuối câu trả lời, dẫn link tham khảo đến website HaUI.
-
-TRẢ LỜI:"""
+    prompt = build_fallback_prompt(query, fallback_results)
 
     try:
         ans = generate_answer(prompt)

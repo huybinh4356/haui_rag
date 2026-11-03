@@ -103,7 +103,7 @@ class ConversationSummary(BaseModel):
 class SendMessageRequest(BaseModel):
     """Schema gửi câu hỏi mới vào cuộc trò chuyện."""
 
-    content: str = Field(..., min_length=1, max_length=2000, description="Nội dung câu hỏi người dùng")
+    content: str = Field(..., min_length=1, max_length=1000, description="Nội dung câu hỏi người dùng")
     top_k: Optional[int] = Field(default=5, ge=1, le=10, description="Số lượng trích dẫn mong muốn")
 
 

@@ -1,9 +1,7 @@
 @echo off
 chcp 65001 >nul
 
-echo =====================================================================
 echo   TRỢ LÝ AI TRA CỨU QUY CHẾ HAUI (haui_rag) - SETUP
-echo =====================================================================
 echo.
 
 where python >nul 2>nul
@@ -66,8 +64,6 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo =====================================================================
 echo   SETUP HOAN TAT! Ban co the chay file run.bat de bat dau.
-echo =====================================================================
 echo.
 pause

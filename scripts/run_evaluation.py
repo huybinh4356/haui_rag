@@ -1,7 +1,6 @@
 """Script tự động đánh giá chất lượng toàn diện của haui-rag-assistant trên bộ 30 câu hỏi benchmark."""
 
 import json
-import logging
 import statistics
 import sys
 import time
@@ -27,7 +26,7 @@ def run_benchmark(
     max_questions: int = 30,
     output_report_file: str | Path | None = None,
     delay_between_calls: float = 3.0,
-):
+) -> None:
     """
     Thực thi đánh giá benchmark trên tập test_questions.json và tính toán KPI.
 
@@ -38,13 +37,13 @@ def run_benchmark(
     """
     input_file = DATA_DIR / "test_data" / "test_questions.json"
     if not input_file.exists():
-        print(f"[ERROR] Khong tim thay file du lieu kiem thu tai: {input_file}")
+        logger.error("Không tìm thấy file dữ liệu kiểm thử tại: %s", input_file)
         return
 
     with open(input_file, "r", encoding="utf-8") as f:
         questions = json.load(f)[:max_questions]
 
-    print(f"[INFO] Bat dau danh gia benchmark tren {len(questions)} cau hoi quy che HaUI")
+    logger.info("Bắt đầu đánh giá benchmark trên %d câu hỏi quy chế HaUI", len(questions))
 
     results = []
     latencies = []
@@ -59,7 +58,7 @@ def run_benchmark(
         question = item["question"]
         expected_sources = item.get("expected_sources", [])
 
-        print(f"\n[{idx}/{len(questions)}] [{q_type.upper()}] {question}")
+        logger.info("[%d/%d] [%s] %s", idx, len(questions), q_type.upper(), question)
         start_t = time.perf_counter()
 
         try:
@@ -70,20 +69,28 @@ def run_benchmark(
             answer = res.get("answer", "")
             sources = res.get("sources", [])
             fallback_used = res.get("fallback_used", False)
+            ans_lower = answer.lower()
 
             # 1. Đánh giá câu hỏi trong phạm vi (factual & procedural)
             has_valid_citation = False
             if q_type in ["factual", "procedural"]:
                 in_scope_count += 1
-                # Kiểm tra có trích dẫn nguồn văn bản hoặc nguồn web
-                if sources:
-                    found_expected = any(
-                        any(exp in s["citation"] for exp in expected_sources)
-                        or any(exp in answer for exp in expected_sources)
-                        for s in sources
-                    ) if expected_sources else True
+                is_rejected_answer = (
+                    "không tìm thấy quy định này" in ans_lower
+                    or "đã xảy ra lỗi" in ans_lower
+                )
+                if sources and not is_rejected_answer:
+                    if expected_sources:
+                        found_expected = any(
+                            any(exp.lower() in str(s.get("citation", "")).lower() for exp in expected_sources)
+                            or any(exp.lower() in str(s.get("ma_van_ban", "")).lower() for exp in expected_sources)
+                            or any(exp.lower() in ans_lower for exp in expected_sources)
+                            for s in sources
+                        )
+                    else:
+                        found_expected = True
 
-                    if found_expected or len(sources) > 0:
+                    if found_expected:
                         correct_citations += 1
                         has_valid_citation = True
 
@@ -91,7 +98,6 @@ def run_benchmark(
             is_safe_rejection = False
             if q_type == "out_of_scope":
                 out_of_scope_count += 1
-                ans_lower = answer.lower()
                 is_safe_rejection = bool(
                     "không tìm thấy" in ans_lower
                     or "không có thông tin" in ans_lower
@@ -101,8 +107,13 @@ def run_benchmark(
                 if is_safe_rejection:
                     correct_out_of_scope += 1
 
-            print(f" -> Thời gian: {elapsed:.2f}s | Sources: {len(sources)} | Fallback: {fallback_used}")
-            print(f" -> Trích đoạn: {answer[:120].strip()}...")
+            logger.info(
+                " -> Thời gian: %.2fs | Sources: %d | Valid Citation: %s | Fallback: %s",
+                elapsed,
+                len(sources),
+                has_valid_citation,
+                fallback_used,
+            )
 
             results.append(
                 {
@@ -119,10 +130,9 @@ def run_benchmark(
             )
 
         except Exception as e:
-            print(f" -> LỖI: {e}")
+            logger.error(" -> Lỗi khi đánh giá câu hỏi %s: %s", q_id, e, exc_info=True)
             results.append({"id": q_id, "error": str(e)})
 
-        # Chờ nhẹ giữa các lần gọi để tôn trọng rate limit của Google Gemini
         if idx < len(questions):
             time.sleep(delay_between_calls)
 
@@ -146,7 +156,6 @@ def run_benchmark(
         "details": results,
     }
 
-    # Xuất file báo cáo
     if output_report_file is None:
         out_path = DATA_DIR / "test_data" / "evaluation_report.json"
     else:
@@ -158,12 +167,12 @@ def run_benchmark(
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
-    print("\n[INFO] BAO CAO TONG KET DANH GIA CHAT LUONG (KPI REPORT)")
-    print(f"- Do chinh xac trich dan (Citation Accuracy): {citation_accuracy:.1f}%  (Muc tieu: >= 95%)")
-    print(f"- Ty le ao giac (Hallucination Rate):          {hallucination_rate:.1f}%  (Muc tieu: < 5%)")
-    print(f"- Thoi gian phan hoi trung binh:              {avg_latency:.2f}s")
-    print(f"- Thoi gian phan hoi P95:                     {p95_latency:.2f}s  (Muc tieu: < 5.0s)")
-    print(f"- Chi tiet bao cao da duoc luu tai:           {out_path}")
+    logger.info("BÁO CÁO TỔNG KẾT ĐÁNH GIÁ CHẤT LƯỢNG (KPI REPORT)")
+    logger.info("- Độ chính xác trích dẫn (Citation Accuracy): %.1f%% (Mục tiêu: >= 95%%)", citation_accuracy)
+    logger.info("- Tỷ lệ ảo giác (Hallucination Rate): %.1f%% (Mục tiêu: < 5%%)", hallucination_rate)
+    logger.info("- Thời gian phản hồi trung bình: %.2fs", avg_latency)
+    logger.info("- Thời gian phản hồi P95: %.2fs (Mục tiêu: < 5.0s)", p95_latency)
+    logger.info("- Chi tiết báo cáo đã được lưu tại: %s", out_path)
 
 
 if __name__ == "__main__":

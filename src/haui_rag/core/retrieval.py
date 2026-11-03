@@ -22,9 +22,9 @@ from haui_rag.config import (
 )
 from haui_rag.core.embedding import get_embedding, get_genai_client
 from haui_rag.core.generation import call_ollama_generate
-from haui_rag.core.query_processor import expand_query
+from haui_rag.core.query_processor import expand_query, extract_entities, extract_search_phrases
 from haui_rag.db.queries import fetch_chunks_for_article, keyword_search, search_similar_chunks
-from haui_rag.utils.helpers import format_citation
+from haui_rag.utils.helpers import enrich_chunk_metadata, format_citation
 
 logger = logging.getLogger("haui_rag")
 
@@ -37,6 +37,20 @@ def reciprocal_rank_fusion(
     weight_keyword: float = 0.3,
     keyword_result_lists: list[list[dict[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
+    """
+    Hợp nhất kết quả từ Vector Search và Keyword Search bằng thuật toán RRF.
+
+    Args:
+        vector_results: Danh sách kết quả từ tìm kiếm vector.
+        keyword_results: Danh sách kết quả từ tìm kiếm từ khóa đơn.
+        k: Hằng số làm mượt thứ hạng RRF (mặc định 60).
+        weight_vector: Trọng số cho nhánh vector.
+        weight_keyword: Trọng số cho nhánh từ khóa.
+        keyword_result_lists: Danh sách kết quả từ nhiều truy vấn từ khóa mở rộng.
+
+    Returns:
+        Danh sách các chunks đã hợp nhất và sắp xếp theo điểm RRF giảm dần.
+    """
     scores: dict[int, float] = {}
     chunks_map: dict[int, dict[str, Any]] = {}
     vector_ids = {chunk["id"] for chunk in vector_results}
@@ -84,17 +98,227 @@ def reciprocal_rank_fusion(
     )
     return fused_results
 
+
+def apply_entity_and_context_boost(
+    fused_chunks: list[dict[str, Any]],
+    query: str,
+) -> list[dict[str, Any]]:
+    """
+    Điều chỉnh điểm xếp hạng dựa trên thực thể quy chế (bậc đào tạo, mã văn bản, điều),
+    chủ thể được hỏi (người học vs đơn vị quản lý) và mật độ cụm khái niệm ngữ cảnh.
+
+    Args:
+        fused_chunks: Danh sách các chunks sau khi hợp nhất RRF.
+        query: Câu hỏi của người dùng.
+
+    Returns:
+        Danh sách chunks đã được tinh chỉnh điểm và sắp xếp lại.
+    """
+    if not fused_chunks or not query:
+        return fused_chunks
+
+    q_lower = query.lower()
+    entities = extract_entities(query)
+    phrases = extract_search_phrases(query)
+    target_bac = entities.get("bac_dao_tao")
+    target_mvb = str(entities.get("ma_van_ban") or "").strip().lower()
+    target_dieu = str(entities.get("dieu") or "").strip()
+
+    asks_learner = any(t in q_lower for t in ("sinh viên", "học viên", "người học"))
+    asks_admin_unit = any(
+        t in q_lower
+        for t in (
+            "đơn vị",
+            "phòng đào tạo",
+            "trung tâm",
+            "cán bộ",
+            "chuyên viên",
+            "qllh",
+            "ban thư ký",
+            "trưởng khoa",
+            "thư viện",
+        )
+    )
+    explicit_undergrad = any(t in q_lower for t in ("đại học", "khóa luận", "đồ án"))
+
+    if not target_bac and not target_mvb and not target_dieu and not phrases and not asks_learner:
+        return fused_chunks
+
+    admin_title_markers = (
+        "trách nhiệm của đơn vị",
+        "trách nhiệm của tt",
+        "trách nhiệm của phòng",
+        "trách nhiệm của cán bộ",
+        "trách nhiệm của ban",
+        "trách nhiệm của trung tâm",
+        "trách nhiệm cảu trung tâm",
+        "nhiệm vụ của hội",
+        "quyền và trách nhiệm của đơn vị",
+        "chuyên viên qllh",
+        "khuyến khích học viên",
+        "giúp đỡ học viên",
+        "nhiệm vụ trong công tác quản lý",
+        "nhiệm vụ trong công tác giáo dục",
+    )
+
+    boosted: list[dict[str, Any]] = []
+    for index, item in enumerate(fused_chunks):
+        chunk = item.copy()
+        meta = enrich_chunk_metadata(chunk.get("metadata") if isinstance(chunk.get("metadata"), dict) else {})
+        chunk["metadata"] = meta
+        base_score = float(chunk.get("rrf_score", 0.0))
+        bonus = 0.0
+
+        content_lower = str(chunk.get("content") or "").lower()
+        head_lower = content_lower[:180]
+        chunk_bac = str(meta.get("bac_dao_tao") or "").lower()
+        chunk_mvb = str(meta.get("ma_van_ban") or "").lower()
+        chunk_file = str(meta.get("ten_file") or "").lower()
+        chunk_dieu = re.sub(r"[^0-9]", "", str(meta.get("dieu") or ""))
+
+        if target_bac and chunk_bac:
+            if target_bac == "đại học" and not explicit_undergrad:
+                # Khi người dùng chỉ nói "sinh viên" chung chung, ưu tiên đại học nhưng vẫn giữ học viên cao học
+                if "đại học" in chunk_bac or chunk_bac == "chung":
+                    bonus += 0.0025
+                elif "thạc sĩ" in chunk_bac:
+                    bonus += 0.0010
+            elif target_bac in chunk_bac or chunk_bac == "chung":
+                bonus += 0.0035
+            else:
+                bonus -= 0.0025
+
+        if asks_learner and not asks_admin_unit:
+            if any(marker in head_lower for marker in admin_title_markers):
+                bonus -= 0.0080
+            elif "chuyên viên qllh" in content_lower or "139/qđ-đhcn" in chunk_mvb:
+                bonus -= 0.0070
+            if any(
+                m in head_lower
+                for m in (
+                    "trách nhiệm và quyền hạn của sinh viên",
+                    "nhiệm vụ và của học viên",
+                    "nhiệm vụ và quyền của học viên",
+                    "sinh viên đủ điều kiện",
+                    "điều kiện để sinh viên",
+                    "sinh viên chương trình",
+                    "sinh viên trình bày",
+                )
+            ):
+                bonus += 0.0040
+
+        if target_mvb and (target_mvb in chunk_mvb or target_mvb in chunk_file):
+            bonus += 0.0080
+
+        if target_dieu:
+            if chunk_dieu == target_dieu or f"điều {target_dieu}" in content_lower:
+                bonus += 0.0060
+
+        if phrases and content_lower:
+            matched_phrases = sum(1 for p in phrases if p in content_lower)
+            bonus += min(matched_phrases * 0.0018, 0.0054)
+
+        chunk["_boosted_score"] = round(base_score + bonus, 7)
+        chunk["_orig_rank"] = index
+        boosted.append(chunk)
+
+    boosted.sort(key=lambda c: (c.get("_boosted_score", 0.0), -c.get("_orig_rank", 0)), reverse=True)
+    for c in boosted:
+        c.pop("_boosted_score", None)
+        c.pop("_orig_rank", None)
+
+    return boosted
+
+
+def _article_identity(chunk: dict[str, Any]) -> tuple[str, str, str] | None:
+    metadata = chunk.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+
+    article_match = re.search(r"\d+", str(metadata.get("dieu", "")).strip())
+    if not article_match:
+        return None
+
+    for field in ("ten_file", "ma_van_ban", "ten_van_ban"):
+        value = str(metadata.get(field, "") or "").strip()
+        if value and value.lower() not in {"none", "null", "n/a"}:
+            return field, value.casefold(), article_match.group(0)
+    return None
+
+
+def _article_sort_key(chunk: dict[str, Any]) -> tuple[int, int, int, int]:
+    metadata = chunk.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    clause = str(metadata.get("khoan", "") or "").strip().casefold()
+    sub_index = str(metadata.get("sub_index", "") or "").strip()
+    chunk_id = chunk.get("id")
+    numeric_clause = int(clause) if clause.isdigit() else 0
+    numeric_sub_index = int(sub_index) if sub_index.isdigit() else 0
+
+    if clause in {"mở đầu", "mo dau", ""}:
+        clause_group = 0
+    elif clause.isdigit():
+        clause_group = 1
+    else:
+        clause_group = 2
+
+    try:
+        numeric_id = int(chunk_id)
+    except (TypeError, ValueError):
+        numeric_id = 0
+
+    return clause_group, numeric_clause, numeric_sub_index, numeric_id
+
+
 def select_contexts_for_coverage(
     fused_chunks: list[dict[str, Any]],
     top_k: int,
 ) -> list[dict[str, Any]]:
+    """
+    Lựa chọn tập ngữ cảnh đảm bảo độ phủ giữa kết quả Vector và Keyword,
+    đồng thời ưu tiên chọn mỗi chunk hạt giống từ một Điều khác nhau để tránh trùng lặp Điều.
+
+    Args:
+        fused_chunks: Danh sách các chunks ứng viên.
+        top_k: Số lượng chunks cần chọn.
+
+    Returns:
+        Danh sách top_k chunks đã cân bằng độ phủ và đa dạng Điều.
+    """
     if top_k <= 0:
         return []
     if len(fused_chunks) <= top_k or top_k < 2:
         return list(fused_chunks[:top_k])
 
-    selected = list(fused_chunks[:top_k])
-    selected_ids = {chunk["id"] for chunk in selected}
+    selected: list[dict[str, Any]] = []
+    selected_ids: set[Any] = set()
+    seen_articles: set[tuple[str, str, str]] = set()
+
+    # Bước 1: Ưu tiên chọn các chunks thuộc các Điều khác nhau trước
+    for chunk in fused_chunks:
+        art_key = _article_identity(chunk)
+        if art_key is not None and art_key in seen_articles:
+            continue
+        selected.append(chunk)
+        selected_ids.add(chunk["id"])
+        if art_key is not None:
+            seen_articles.add(art_key)
+        if len(selected) >= top_k:
+            break
+
+    # Bước 2: Nếu chưa đủ top_k thì bổ sung các chunks điểm cao tiếp theo
+    if len(selected) < top_k:
+        for chunk in fused_chunks:
+            if chunk["id"] in selected_ids:
+                continue
+            selected.append(chunk)
+            selected_ids.add(chunk["id"])
+            if len(selected) >= top_k:
+                break
+
+    remaining_pool = [c for c in fused_chunks if c["id"] not in selected_ids]
 
     requirements = [
         (
@@ -115,7 +339,7 @@ def select_contexts_for_coverage(
         replacement = next(
             (
                 chunk
-                for chunk in fused_chunks[top_k:]
+                for chunk in remaining_pool
                 if chunk["id"] not in selected_ids and predicate(chunk)
             ),
             None,
@@ -131,7 +355,7 @@ def select_contexts_for_coverage(
         replacement = next(
             (
                 chunk
-                for chunk in fused_chunks[top_k:]
+                for chunk in remaining_pool
                 if chunk["id"] not in selected_ids and chunk.get("has_keyword_match", False)
             ),
             None,
@@ -146,11 +370,59 @@ def select_contexts_for_coverage(
     selected.sort(key=lambda chunk: rank_by_id.get(chunk["id"], len(fused_chunks)))
     return selected
 
+
+def _build_rerank_snippet(query: str, chunk: dict[str, Any], max_chars: int = 420) -> str:
+    """
+    Trích xuất đoạn tóm tắt thông minh cho Reranker, kết hợp phần mở đầu chunk
+    và cửa sổ chứa mật độ từ khóa cao nhất ở phần thân/cuối để không bỏ sót các Điều bị gộp.
+    """
+    raw_text = str(chunk.get("content", "") or "").replace("\n", " ").strip()
+    clean_text = re.sub(r"\s+", " ", raw_text)
+    if len(clean_text) <= max_chars:
+        return clean_text
+
+    head_len = 190
+    tail_budget = max_chars - head_len - 5
+    head = clean_text[:head_len]
+    remainder = clean_text[head_len:]
+
+    query_tokens = [
+        t.lower()
+        for t in re.sub(r"[^\w\s]", " ", query).split()
+        if len(t) > 2
+    ]
+    phrases = extract_search_phrases(query)
+
+    best_pos = 0
+    best_score = -1.0
+    step = 60
+    for start in range(0, max(1, len(remainder) - tail_budget + 1), step):
+        window = remainder[start : start + tail_budget].lower()
+        score = sum(3.0 for p in phrases if p in window) + sum(1.0 for t in query_tokens if t in window)
+        if score > best_score:
+            best_score = score
+            best_pos = start
+
+    best_window = remainder[best_pos : best_pos + tail_budget].strip()
+    return f"{head} ... {best_window}"
+
+
 def rerank_by_llm(
     query: str,
     chunks: list[dict[str, Any]],
     top_k: int = DEFAULT_TOP_K,
 ) -> list[dict[str, Any]]:
+    """
+    Chấm điểm và xếp hạng lại các chunks ứng viên bằng Gemini LLM.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        chunks: Danh sách các chunks ứng viên.
+        top_k: Số lượng chunks trả về sau khi xếp hạng lại.
+
+    Returns:
+        Danh sách top_k chunks có điểm liên quan cao nhất.
+    """
     if not chunks or len(chunks) <= 1:
         return chunks[:top_k]
 
@@ -158,7 +430,7 @@ def rerank_by_llm(
     context_summaries = []
     for i, c in enumerate(candidates, start=1):
         citation = format_citation(c.get("metadata", {}))
-        snippet = c.get("content", "").replace("\n", " ").strip()[:250]
+        snippet = _build_rerank_snippet(query, c, max_chars=420)
         context_summaries.append(f"[{i}] {citation}: {snippet}")
 
     prompt = f"""Bạn là giám khảo đánh giá thông tin tra cứu quy chế đại học.
@@ -210,6 +482,17 @@ def rerank_by_local_model(
     chunks: list[dict[str, Any]],
     top_k: int = DEFAULT_TOP_K,
 ) -> list[dict[str, Any]]:
+    """
+    Chấm điểm và xếp hạng lại các chunks ứng viên bằng mô hình Ollama cục bộ.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        chunks: Danh sách các chunks ứng viên.
+        top_k: Số lượng chunks cần lấy sau khi xếp hạng.
+
+    Returns:
+        Danh sách top_k chunks đã được xếp hạng lại.
+    """
     if not chunks or len(chunks) <= 1:
         return chunks[:top_k]
 
@@ -217,7 +500,7 @@ def rerank_by_local_model(
     context_summaries = []
     for index, chunk in enumerate(candidates, start=1):
         citation = format_citation(chunk.get("metadata", {}))
-        snippet = chunk.get("content", "").replace("\n", " ").strip()[:220]
+        snippet = _build_rerank_snippet(query, chunk, max_chars=380)
         context_summaries.append(f"[{index}] {citation}: {snippet}")
 
     prompt = f"""Bạn đang xếp hạng các đoạn trích quy chế đại học để tìm nguồn trả lời câu hỏi.
@@ -286,55 +569,98 @@ Hãy trả điểm cho mọi chỉ mục từ 1 đến {len(candidates)}.
         return select_contexts_for_coverage(chunks, top_k=top_k)
 
 
+def _prioritize_article_chunks_around_seed(
+    seed: dict[str, Any],
+    article_chunks: list[dict[str, Any]],
+    max_article_chars: int,
+) -> list[dict[str, Any]]:
+    """
+    Khi một Điều quá dài vượt quá max_article_chars, ưu tiên giữ lại chunk hạt giống (seed),
+    tiêu đề mở đầu của Điều và các khoản liền kề xung quanh seed trước khi sắp xếp lại.
+    """
+    total_len = sum(len(str(c.get("content", "") or "")) for c in article_chunks)
+    if total_len <= max_article_chars or len(article_chunks) <= 2:
+        return article_chunks
 
-def _article_identity(chunk: dict[str, Any]) -> tuple[str, str, str] | None:
-    metadata = chunk.get("metadata")
-    if not isinstance(metadata, dict):
-        return None
+    seed_id = seed.get("id")
+    seed_pos = next(
+        (i for i, item in enumerate(article_chunks) if item.get("id") == seed_id and seed_id is not None),
+        0,
+    )
 
-    article_match = re.search(r"\d+", str(metadata.get("dieu", "")).strip())
-    if not article_match:
-        return None
+    selected_indices: list[int] = [seed_pos]
+    used_chars = len(str(article_chunks[seed_pos].get("content", "") or ""))
 
-    for field in ("ten_file", "ma_van_ban", "ten_van_ban"):
-        value = str(metadata.get(field, "") or "").strip()
-        if value and value.lower() not in {"none", "null", "n/a"}:
-            return field, value.casefold(), article_match.group(0)
-    return None
+    # Giữ phần mở đầu Điều nếu ngắn gọn
+    if 0 not in selected_indices:
+        first_len = len(str(article_chunks[0].get("content", "") or ""))
+        first_khoan = str((article_chunks[0].get("metadata") or {}).get("khoan", "")).lower()
+        if first_khoan in ("mở đầu", "mo dau", "") and first_len <= 450 and used_chars + first_len <= max_article_chars:
+            selected_indices.append(0)
+            used_chars += first_len
+
+    # Mở rộng dần sang các khoản liền sau và liền trước seed
+    offset = 1
+    while len(selected_indices) < len(article_chunks):
+        added_any = False
+        for candidate_idx in (seed_pos + offset, seed_pos - offset):
+            if 0 <= candidate_idx < len(article_chunks) and candidate_idx not in selected_indices:
+                cand_len = len(str(article_chunks[candidate_idx].get("content", "") or ""))
+                if used_chars + cand_len <= max_article_chars:
+                    selected_indices.append(candidate_idx)
+                    used_chars += cand_len
+                    added_any = True
+        if not added_any and (seed_pos + offset >= len(article_chunks)) and (seed_pos - offset < 0):
+            break
+        offset += 1
+        if offset > len(article_chunks):
+            break
+
+    selected_indices.sort()
+    return [article_chunks[i] for i in selected_indices]
 
 
-def _article_sort_key(chunk: dict[str, Any]) -> tuple[int, int, int, int]:
-    metadata = chunk.get("metadata")
-    if not isinstance(metadata, dict):
-        metadata = {}
+def _extract_referenced_articles(content: str, current_article: str) -> list[str]:
+    """
+    Phát hiện các số Điều được tham chiếu chéo trong nội dung văn bản
+    (ví dụ: 'quy định tại Khoản 2, Điều 37', 'tại khoản 3 Điều 3', hoặc Điều bị gộp).
+    """
+    if not content:
+        return []
 
-    clause = str(metadata.get("khoan", "") or "").strip().casefold()
-    sub_index = str(metadata.get("sub_index", "") or "").strip()
-    chunk_id = chunk.get("id")
-    numeric_clause = int(clause) if clause.isdigit() else 0
-    numeric_sub_index = int(sub_index) if sub_index.isdigit() else 0
-
-    if clause in {"mở đầu", "mo dau", ""}:
-        clause_group = 0
-    elif clause.isdigit():
-        clause_group = 1
-    else:
-        clause_group = 2
-
-    try:
-        numeric_id = int(chunk_id)
-    except (TypeError, ValueError):
-        numeric_id = 0
-
-    return clause_group, numeric_clause, numeric_sub_index, numeric_id
+    patterns = [
+        r"(?:tại|theo)\s+(?:điểm\s+[a-zđ]\s*,?\s*)?(?:khoản\s+\d+\s*,?\s*)?điều\s+(\d+)",
+        r"điều\s+(\d+)\s+(?:quy\s+định\s+này|quy\s+chế\s+này)",
+        r"điều\s+(\d+)\s*\.",
+    ]
+    refs: list[str] = []
+    text_lower = content.lower()
+    for pat in patterns:
+        for match in re.findall(pat, text_lower):
+            if match and match != current_article and match not in refs:
+                refs.append(match)
+    return refs[:2]
 
 
 def expand_contexts_by_article(
     chunks: list[dict[str, Any]],
-    max_articles: int = 2,
-    max_context_chars: int = 7500,
-    max_article_chars: int = 5200,
+    max_articles: int = 6,
+    max_context_chars: int = 12000,
+    max_article_chars: int = 2600,
 ) -> list[dict[str, Any]]:
+    """
+    Mở rộng ngữ cảnh bằng cách lấy toàn bộ các khoản thuộc cùng một Điều
+    và tự động mở rộng các Điều được tham chiếu chéo trong cùng văn bản.
+
+    Args:
+        chunks: Danh sách các chunks hạt giống đã chọn.
+        max_articles: Số lượng Điều tối đa được mở rộng đầy đủ.
+        max_context_chars: Tổng số ký tự ngữ cảnh tối đa.
+        max_article_chars: Số ký tự tối đa cho mỗi Điều mở rộng.
+
+    Returns:
+        Danh sách các chunks sau khi đã mở rộng ngữ cảnh.
+    """
     if not chunks:
         return []
 
@@ -351,7 +677,12 @@ def expand_contexts_by_article(
     total_chars = 0
     any_truncated = False
 
-    for seed in chunks:
+    seed_queue: list[dict[str, Any]] = list(chunks)
+    idx = 0
+    while idx < len(seed_queue):
+        seed = seed_queue[idx]
+        idx += 1
+
         article_key = _article_identity(seed)
         article_chunks: list[dict[str, Any]] = [seed]
         is_expanding = False
@@ -368,11 +699,38 @@ def expand_contexts_by_article(
                 if not any(item.get("id") == seed.get("id") for item in article_chunks):
                     article_chunks.append(seed)
                 article_chunks.sort(key=_article_sort_key)
+                article_chunks = _prioritize_article_chunks_around_seed(
+                    seed,
+                    article_chunks,
+                    max_article_chars,
+                )
                 is_expanding = True
                 expanded_article_count += 1
 
+                # Phát hiện tham chiếu chéo sang Điều khác trong cùng văn bản
+                if expanded_article_count < max_articles and not seed.get("_is_cross_ref"):
+                    seed_meta = seed.get("metadata") if isinstance(seed.get("metadata"), dict) else {}
+                    combined_text = " ".join(str(c.get("content", "")) for c in article_chunks[:4])
+                    ref_articles = _extract_referenced_articles(combined_text, article_key[2])
+                    for ref_dieu in ref_articles:
+                        ref_meta = dict(seed_meta)
+                        ref_meta["dieu"] = ref_dieu
+                        ref_meta["khoan"] = "1"
+                        ref_seed = {
+                            "id": None,
+                            "content": "",
+                            "metadata": ref_meta,
+                            "_is_cross_ref": True,
+                        }
+                        ref_key = _article_identity(ref_seed)
+                        if ref_key is not None and ref_key not in processed_articles:
+                            seed_queue.append(ref_seed)
+
         article_chars = 0
         for item in article_chunks:
+            if item.get("_is_cross_ref") and not item.get("content"):
+                continue
+
             chunk_id = item.get("id")
             if chunk_id is not None and chunk_id in seen_ids:
                 continue
@@ -403,6 +761,7 @@ def expand_contexts_by_article(
 
             original = original_by_id.get(chunk_id)
             merged = item.copy()
+            merged.pop("_is_cross_ref", None)
             if original is not None:
                 merged.update(
                     {
@@ -447,10 +806,22 @@ def expand_contexts_by_article(
     )
     return expanded
 
+
 def retrieve_relevant_contexts(
     query: str,
     top_k: int = DEFAULT_TOP_K,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """
+    Thực thi toàn bộ luồng truy xuất ngữ cảnh:
+    Query Expansion -> Hybrid Search -> RRF -> Entity/Context Boost -> Reranking -> Article/Cross-Ref Expansion.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        top_k: Số lượng chunks hạt giống cần lấy.
+
+    Returns:
+        Tuple gồm (final_contexts, formatted_sources).
+    """
     requested_top_k = max(1, min(int(top_k), MAX_TOP_K))
     expanded_queries = expand_query(query) or [query.strip()]
     primary_query = expanded_queries[0]
@@ -473,6 +844,7 @@ def retrieve_relevant_contexts(
         keyword_result_lists=keyword_result_lists,
         k=60,
     )
+    fused_chunks = apply_entity_and_context_boost(fused_chunks, query)
 
     max_rerank_candidates = 8 if USE_LLM_RERANK else 10
     rerank_candidate_count = min(
@@ -498,7 +870,8 @@ def retrieve_relevant_contexts(
 
     formatted_sources: list[dict[str, Any]] = []
     for c in final_contexts:
-        meta = c.get("metadata", {})
+        meta = enrich_chunk_metadata(c.get("metadata", {}))
+        c["metadata"] = meta
         formatted_sources.append(
             {
                 "chunk_id": c.get("id"),

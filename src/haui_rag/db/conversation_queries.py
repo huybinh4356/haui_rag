@@ -593,3 +593,460 @@ def save_feedback(
     finally:
         if conn and not conn.closed:
             conn.close()
+
+
+def get_system_evaluation_metrics() -> dict[str, Any]:
+    """
+    Tổng hợp số liệu vận hành thực tế từ các bảng messages,
+    feedback, request_logs và documents (chỉ đọc).
+
+    Returns:
+        dict: Bộ thông số vận hành và thống kê biểu đồ từ PostgreSQL.
+    """
+    summary: dict[str, Any] = {
+        "total_documents": 0,
+        "total_files": 0,
+        "total_conversations": 0,
+        "total_user_queries": 0,
+        "total_assistant_answers": 0,
+        "avg_latency_ms": 0,
+        "p95_latency_ms": 0,
+        "grounded_count": 0,
+        "ungrounded_count": 0,
+        "audited_count": 0,
+        "grounded_rate_percent": 0.0,
+        "avg_verification_score": 0.0,
+        "avg_sources_per_answer": 0.0,
+        "fallback_count": 0,
+        "fallback_rate_percent": 0.0,
+        "query_type_breakdown": {},
+        "docs_by_file": [],
+        "recent_latencies": [],
+        "feedback_total": 0,
+        "feedback_helpful": 0,
+        "feedback_unhelpful": 0,
+        "satisfaction_rate_percent": 0.0,
+    }
+
+    conn = None
+    try:
+        conn = connect_db()
+        with conn.cursor() as cur:
+            # 1. Thống kê kho tri thức documents (READ-ONLY)
+            cur.execute(
+                """
+                SELECT COUNT(*), COUNT(DISTINCT metadata->>'ten_file')
+                FROM documents;
+                """
+            )
+            doc_row = cur.fetchone()
+            if doc_row:
+                summary["total_documents"] = int(doc_row[0] or 0)
+                summary["total_files"] = int(doc_row[1] or 0)
+
+            cur.execute(
+                """
+                SELECT COALESCE(metadata->>'ma_van_ban', metadata->>'ten_file', 'Chưa rõ') AS doc_label,
+                       COUNT(*) AS chunk_cnt
+                FROM documents
+                GROUP BY doc_label
+                ORDER BY chunk_cnt DESC;
+                """
+            )
+            summary["docs_by_file"] = [
+                {"Văn bản": str(r[0]), "Số chunks": int(r[1] or 0)}
+                for r in cur.fetchall()
+            ]
+
+            # 2. Tổng số hội thoại
+            cur.execute("SELECT COUNT(*) FROM conversations;")
+            conv_row = cur.fetchone()
+            if conv_row:
+                summary["total_conversations"] = int(conv_row[0] or 0)
+
+            # 3. Thống kê tin nhắn và chất lượng trích dẫn
+            cur.execute(
+                """
+                SELECT role, query_type, latency_ms, fallback_used, citations, metadata, created_at
+                FROM messages
+                ORDER BY created_at ASC;
+                """
+            )
+            rows = cur.fetchall()
+
+            latencies: list[int] = []
+            recent_latencies: list[dict[str, Any]] = []
+            verification_scores: list[float] = []
+            grounded_count = 0
+            audited_count = 0
+            sources_counts: list[int] = []
+            fallback_count = 0
+            q_breakdown: dict[str, int] = {}
+            ans_seq = 0
+
+            for role, q_type, lat_ms, fb_used, cites, meta, _ in rows:
+                if role == "user":
+                    summary["total_user_queries"] += 1
+                elif role == "assistant":
+                    summary["total_assistant_answers"] += 1
+                    ans_seq += 1
+                    q_label = str(q_type or "factual").lower()
+                    q_breakdown[q_label] = q_breakdown.get(q_label, 0) + 1
+
+                    src_len = 0
+                    if isinstance(cites, list):
+                        src_len = len(cites)
+                        sources_counts.append(src_len)
+                    elif isinstance(cites, str):
+                        try:
+                            parsed_c = json.loads(cites)
+                            if isinstance(parsed_c, list):
+                                src_len = len(parsed_c)
+                                sources_counts.append(src_len)
+                        except Exception:
+                            pass
+
+                    if isinstance(lat_ms, (int, float)) and lat_ms > 0:
+                        lat_int = int(lat_ms)
+                        latencies.append(lat_int)
+                        recent_latencies.append(
+                            {
+                                "Lượt": f"#{ans_seq}",
+                                "Độ trễ (ms)": lat_int,
+                                "Số chunks": src_len,
+                                "Loại": q_label,
+                            }
+                        )
+                    if fb_used:
+                        fallback_count += 1
+
+                    meta_dict = meta if isinstance(meta, dict) else {}
+                    if isinstance(meta, str):
+                        try:
+                            meta_dict = json.loads(meta)
+                        except Exception:
+                            meta_dict = {}
+                    audit = meta_dict.get("citation_audit") if isinstance(meta_dict, dict) else None
+                    if isinstance(audit, dict):
+                        audited_count += 1
+                        if audit.get("is_grounded", True):
+                            grounded_count += 1
+                        v_score = audit.get("verification_score")
+                        if isinstance(v_score, (int, float)):
+                            verification_scores.append(float(v_score) * 100.0)
+
+            ans_total = summary["total_assistant_answers"]
+            if latencies:
+                sorted_lat = sorted(latencies)
+                summary["avg_latency_ms"] = int(sum(sorted_lat) / len(sorted_lat))
+                p95_idx = min(len(sorted_lat) - 1, max(0, int(len(sorted_lat) * 0.95) - 1))
+                summary["p95_latency_ms"] = int(sorted_lat[p95_idx])
+            summary["recent_latencies"] = recent_latencies[-25:]
+            summary["audited_count"] = audited_count
+            summary["grounded_count"] = grounded_count
+            summary["ungrounded_count"] = max(0, audited_count - grounded_count)
+            if audited_count > 0:
+                summary["grounded_rate_percent"] = round(grounded_count / audited_count * 100.0, 1)
+            if verification_scores:
+                summary["avg_verification_score"] = round(
+                    sum(verification_scores) / len(verification_scores),
+                    1,
+                )
+            if sources_counts:
+                summary["avg_sources_per_answer"] = round(
+                    sum(sources_counts) / len(sources_counts),
+                    1,
+                )
+            summary["fallback_count"] = fallback_count
+            if ans_total > 0:
+                summary["fallback_rate_percent"] = round(fallback_count / ans_total * 100.0, 1)
+            summary["query_type_breakdown"] = q_breakdown
+
+            # 4. Thống kê phản hồi người dùng (feedback)
+            cur.execute("SELECT rating, COUNT(*) FROM feedback GROUP BY rating;")
+            fb_rows = cur.fetchall()
+            helpful = 0
+            unhelpful = 0
+            for r_name, cnt in fb_rows:
+                r_clean = str(r_name or "").lower()
+                if r_clean in ("helpful", "positive"):
+                    helpful += int(cnt or 0)
+                else:
+                    unhelpful += int(cnt or 0)
+            total_fb = helpful + unhelpful
+            summary["feedback_total"] = total_fb
+            summary["feedback_helpful"] = helpful
+            summary["feedback_unhelpful"] = unhelpful
+            if total_fb > 0:
+                summary["satisfaction_rate_percent"] = round(helpful / total_fb * 100.0, 1)
+
+    except Exception as e:
+        logger.warning("Không thể lấy thống kê đánh giá hệ thống: %s", e)
+    finally:
+        if conn and not conn.closed:
+            conn.close()
+
+    return summary
+
+
+_cache_table_ready = False
+
+
+def _ensure_query_cache_table(conn: psycopg2.extensions.connection) -> None:
+    """Đảm bảo bảng query_cache đã tồn tại trong PostgreSQL."""
+    global _cache_table_ready
+    if _cache_table_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS query_cache (
+                cache_key VARCHAR(64) PRIMARY KEY,
+                normalized_query TEXT NOT NULL,
+                original_query TEXT NOT NULL,
+                top_k INTEGER NOT NULL DEFAULT 5,
+                answer TEXT NOT NULL,
+                sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+                query_type VARCHAR(50),
+                fallback_used BOOLEAN NOT NULL DEFAULT FALSE,
+                citation_audit JSONB,
+                hit_count INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                last_hit_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_query_cache_normalized ON query_cache(normalized_query, top_k);
+            CREATE INDEX IF NOT EXISTS idx_query_cache_hit_count ON query_cache(hit_count DESC, last_hit_at DESC);
+            """
+        )
+    conn.commit()
+    _cache_table_ready = True
+
+
+def normalize_cache_query(query: str) -> str:
+    """
+    Chuẩn hóa câu hỏi để tra cứu Cache chính xác ngay cả khi khác dấu câu,
+    chữ hoa/thường hoặc các từ đệm mở đầu ('cho em hỏi', 'xin hỏi'...).
+
+    Args:
+        query: Câu hỏi gốc của người dùng.
+
+    Returns:
+        str: Chuỗi câu hỏi đã chuẩn hóa.
+    """
+    if not query:
+        return ""
+    clean = query.strip().lower()
+    clean = re.sub(
+        r"^(cho\s+em\s+hỏi|cho\s+tôi\s+hỏi|thầy\s+cô\s+cho\s+em\s+hỏi|xin\s+hỏi|em\s+muốn\s+hỏi|tôi\s+muốn\s+hỏi)\s*[:,]?\s*",
+        "",
+        clean,
+        flags=re.IGNORECASE,
+    )
+    clean = re.sub(r"[?!.,;:]+$", "", clean)
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean
+
+
+def make_query_cache_key(query: str, top_k: int = 5) -> tuple[str, str]:
+    """Tạo khóa băm SHA-256 duy nhất từ câu hỏi đã chuẩn hóa và top_k."""
+    import hashlib
+
+    norm = normalize_cache_query(query)
+    raw = f"{norm}|top_k={int(top_k)}"
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return digest, norm
+
+
+def get_cached_query_response(query: str, top_k: int = 5) -> Optional[dict[str, Any]]:
+    """
+    Tra cứu câu hỏi trong bảng query_cache của PostgreSQL.
+    Nếu tìm thấy, tự động tăng bộ đếm hit_count và cập nhật last_hit_at.
+
+    Args:
+        query: Câu hỏi của người dùng.
+        top_k: Số lượng chunks hạt giống.
+
+    Returns:
+        Optional[dict]: Dữ liệu phản hồi đã cache hoặc None nếu chưa có.
+    """
+    cache_key, norm_q = make_query_cache_key(query, top_k)
+    if not norm_q:
+        return None
+
+    conn = None
+    try:
+        conn = connect_db()
+        _ensure_query_cache_table(conn)
+        sql = """
+        UPDATE query_cache
+        SET hit_count = hit_count + 1,
+            last_hit_at = NOW()
+        WHERE cache_key = %s
+        RETURNING answer, sources, query_type, fallback_used, citation_audit, hit_count;
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, (cache_key,))
+            row = cur.fetchone()
+            conn.commit()
+
+        if not row:
+            return None
+
+        sources_val = row[1]
+        if isinstance(sources_val, str):
+            try:
+                sources_val = json.loads(sources_val)
+            except Exception:
+                sources_val = []
+        elif sources_val is None:
+            sources_val = []
+
+        audit_val = row[4]
+        if isinstance(audit_val, str):
+            try:
+                audit_val = json.loads(audit_val)
+            except Exception:
+                audit_val = None
+
+        return {
+            "answer": row[0],
+            "sources": sources_val,
+            "query_type": row[2] or "factual",
+            "fallback_used": bool(row[3]),
+            "citation_audit": audit_val,
+            "cache_hit": True,
+            "cache_layer": "postgresql",
+            "hit_count": int(row[5] or 1),
+        }
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.warning("Không thể đọc query_cache từ PostgreSQL: %s", e)
+        return None
+    finally:
+        if conn and not conn.closed:
+            conn.close()
+
+
+def save_cached_query_response(
+    query: str,
+    top_k: int,
+    response_data: dict[str, Any],
+) -> None:
+    """
+    Lưu trữ câu hỏi và câu trả lời hoàn chỉnh vào bảng query_cache trong PostgreSQL.
+
+    Args:
+        query: Câu hỏi gốc của người dùng.
+        top_k: Tham số top_k.
+        response_data: Kết quả trả về từ RAG pipeline.
+    """
+    cache_key, norm_q = make_query_cache_key(query, top_k)
+    answer = str(response_data.get("answer") or "").strip()
+    if not norm_q or not answer:
+        return
+
+    conn = None
+    try:
+        conn = connect_db()
+        _ensure_query_cache_table(conn)
+        sql = """
+        INSERT INTO query_cache (
+            cache_key, normalized_query, original_query, top_k,
+            answer, sources, query_type, fallback_used, citation_audit,
+            hit_count, created_at, last_hit_at
+        )
+        VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s::jsonb, 0, NOW(), NOW())
+        ON CONFLICT (cache_key) DO UPDATE SET
+            answer = EXCLUDED.answer,
+            sources = EXCLUDED.sources,
+            query_type = EXCLUDED.query_type,
+            fallback_used = EXCLUDED.fallback_used,
+            citation_audit = EXCLUDED.citation_audit,
+            last_hit_at = NOW();
+        """
+        with conn.cursor() as cur:
+            cur.execute(
+                sql,
+                (
+                    cache_key,
+                    norm_q,
+                    query.strip(),
+                    int(top_k),
+                    answer,
+                    json.dumps(response_data.get("sources") or [], ensure_ascii=False),
+                    response_data.get("query_type") or "factual",
+                    bool(response_data.get("fallback_used", False)),
+                    json.dumps(response_data.get("citation_audit") or {}, ensure_ascii=False),
+                ),
+            )
+            conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.warning("Không thể lưu vào bảng query_cache: %s", e)
+    finally:
+        if conn and not conn.closed:
+            conn.close()
+
+
+def list_cached_queries(limit: int = 50) -> list[dict[str, Any]]:
+    """
+    Lấy danh sách các câu hỏi đã được lưu trong query_cache để hiển thị và quản lý trên UI.
+    """
+    conn = None
+    try:
+        conn = connect_db()
+        _ensure_query_cache_table(conn)
+        sql = """
+        SELECT cache_key, original_query, normalized_query, top_k,
+               query_type, jsonb_array_length(sources) AS sources_cnt,
+               hit_count, created_at, last_hit_at
+        FROM query_cache
+        ORDER BY hit_count DESC, last_hit_at DESC
+        LIMIT %s;
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, (max(1, int(limit)),))
+            rows = cur.fetchall()
+        return [
+            {
+                "cache_key": r[0],
+                "original_query": r[1],
+                "normalized_query": r[2],
+                "top_k": int(r[3] or 5),
+                "query_type": r[4] or "factual",
+                "sources_count": int(r[5] or 0),
+                "hit_count": int(r[6] or 0),
+                "created_at": r[7].isoformat() if hasattr(r[7], "isoformat") else str(r[7]),
+                "last_hit_at": r[8].isoformat() if hasattr(r[8], "isoformat") else str(r[8]),
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        logger.warning("Không thể đọc danh sách query_cache: %s", e)
+        return []
+    finally:
+        if conn and not conn.closed:
+            conn.close()
+
+
+def clear_query_cache_db() -> int:
+    """Xóa toàn bộ các bản ghi trong bảng query_cache khi quản trị viên cần làm mới."""
+    conn = None
+    try:
+        conn = connect_db()
+        _ensure_query_cache_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM query_cache;")
+            deleted = cur.rowcount or 0
+            conn.commit()
+        return int(deleted)
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.warning("Không thể xóa bảng query_cache: %s", e)
+        return 0
+    finally:
+        if conn and not conn.closed:
+            conn.close()

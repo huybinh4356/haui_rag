@@ -1,7 +1,6 @@
 """Đánh giá độ chính xác và tỷ lệ không bịa đặt (Anti-Hallucination) của haui_rag."""
 
 import json
-from pathlib import Path
 import time
 import pytest
 
@@ -39,11 +38,16 @@ def test_sample_accuracy_factual(benchmark_questions):
     assert bool(res["answer"])
     assert len(res["sources"]) > 0
 
-    # Kiểm tra có trích dẫn đúng mã văn bản kỳ vọng
+    # Kiểm tra câu trả lời không bị từ chối và có trích dẫn đúng mã văn bản kỳ vọng
     answer_text = res["answer"]
-    found_expected = any(exp in answer_text or any(exp in s["citation"] for s in res["sources"])
-                         for exp in sample["expected_sources"])
-    assert found_expected or len(res["sources"]) > 0, "Không tìm thấy văn bản quy chế kỳ vọng trong kết quả"
+    assert "không tìm thấy quy định này" not in answer_text.lower()
+    found_expected = any(
+        exp.lower() in answer_text.lower()
+        or any(exp.lower() in str(s.get("citation", "")).lower() for s in res["sources"])
+        or any(exp.lower() in str(s.get("ma_van_ban", "")).lower() for s in res["sources"])
+        for exp in sample["expected_sources"]
+    )
+    assert found_expected, "Không tìm thấy văn bản quy chế kỳ vọng trong kết quả"
 
 
 def test_anti_hallucination_out_of_scope(benchmark_questions):

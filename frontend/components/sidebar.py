@@ -95,7 +95,26 @@ def render_sidebar() -> None:
                 unsafe_allow_html=True,
             )
 
-        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+
+        # Tùy chọn bố cục thanh chat (Chuẩn AI đẩy lên trên vs Thanh chat trên cùng)
+        st.markdown('<div class="sidebar-section-heading">BỐ CỤC KHUNG CHAT</div>', unsafe_allow_html=True)
+        current_layout = st.session_state.get("chat_layout_mode", "bottom")
+        layout_opts = ["Đẩy lên trên (Chuẩn AI)", "Thanh chat trên cùng"]
+        current_idx = 0 if current_layout == "bottom" else 1
+        chosen_layout = st.selectbox(
+            "Vị trí thanh chat:",
+            options=layout_opts,
+            index=current_idx,
+            key="sb_chat_layout_selector",
+            label_visibility="collapsed",
+        )
+        new_layout = "bottom" if chosen_layout.startswith("Đẩy lên trên") else "top"
+        if new_layout != current_layout:
+            st.session_state.chat_layout_mode = new_layout
+            st.rerun()
+
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
         # Chân trang Sidebar: Cài đặt và Trợ giúp
         col_c1, col_c2 = st.columns(2)

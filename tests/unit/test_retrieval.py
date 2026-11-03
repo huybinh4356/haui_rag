@@ -255,3 +255,69 @@ def test_single_context_keeps_highest_ranked_candidate():
     selected = select_contexts_for_coverage(candidates, top_k=1)
 
     assert [item["id"] for item in selected] == [1]
+
+
+def test_entity_and_context_boost_prioritizes_matching_education_level():
+    chunks = [
+        {
+            "id": 10,
+            "content": "Quy định đối với nghiên cứu sinh trình độ tiến sĩ.",
+            "metadata": {"ten_file": "QD Dao tao Tien si (2018-update).pdf", "dieu": "15"},
+            "rrf_score": 0.015,
+        },
+        {
+            "id": 20,
+            "content": "Điều 12. Nhận tốt nghiệp và cấp bằng thạc sĩ cho học viên.",
+            "metadata": {"ten_file": "1. Quyết định 41 Quy chế tuyển sinh và ĐT trình độ ThS OK.pdf", "dieu": "11"},
+            "rrf_score": 0.014,
+        },
+    ]
+
+    boosted = retrieval.apply_entity_and_context_boost(
+        chunks,
+        "Điều kiện công nhận tốt nghiệp và cấp bằng thạc sĩ?",
+    )
+    assert boosted[0]["id"] == 20
+    assert boosted[0]["metadata"]["ma_van_ban"] == "41/QĐ-ĐHCN"
+
+
+def test_build_rerank_snippet_captures_tail_keywords_in_merged_chunks():
+    long_prefix = "Điều 11. 4. Trách nhiệm của đơn vị quản lý đào tạo. " * 12
+    tail_clause = "Điều 12 . nhận tốt nghiệp và cấp bằng thạc sĩ 1 Điều kiện nhận tốt nghiệp."
+    chunk = {"id": 54, "content": long_prefix + tail_clause, "metadata": {}}
+
+    snippet = retrieval._build_rerank_snippet(
+        "Điều kiện công nhận tốt nghiệp và cấp bằng thạc sĩ?",
+        chunk,
+        max_chars=400,
+    )
+    assert "nhận tốt nghiệp" in snippet.lower()
+
+
+def test_article_expansion_follows_cross_referenced_article(monkeypatch):
+    seed = {
+        "id": 618,
+        "content": "Điều 42. 1. Có đủ điều kiện bảo vệ luận văn quy định tại Khoản 2, Điều 37 Quy định này.",
+        "metadata": {"ten_file": "Quy định 630 theo TT15 dao tao ThS tại ĐHCN (1).pdf", "dieu": "42", "khoan": "1"},
+        "distance": 0.15,
+    }
+    dieu_37_chunk = {
+        "id": 601,
+        "content": "Điều 37. 2. Điều kiện học viên được phép bảo vệ luận văn.",
+        "metadata": {"ten_file": "Quy định 630 theo TT15 dao tao ThS tại ĐHCN (1).pdf", "dieu": "37", "khoan": "2"},
+        "distance": None,
+        "context_expanded": True,
+    }
+
+    def fake_fetch(chunk, limit=40):
+        dieu = str(chunk.get("metadata", {}).get("dieu", ""))
+        if dieu == "42":
+            return [seed]
+        if dieu == "37":
+            return [dieu_37_chunk]
+        return []
+
+    monkeypatch.setattr(retrieval, "fetch_chunks_for_article", fake_fetch)
+
+    expanded = retrieval.expand_contexts_by_article([seed], max_articles=3)
+    assert [c["id"] for c in expanded] == [618, 601]
